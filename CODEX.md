@@ -131,12 +131,14 @@ Overview lives in `app/board/overviewView.js`, aggregates existing batched snaps
 
 ## Human-first project coordination
 
-The Now project grid and Needs you interface is owned by `app/board/overviewView.js` and its coordination view helper. Shared normalization lives in `shared/projectCoordination.js`; persisted summaries and revision-protected card coordination live in `lib/projectCoordination.js`. The optional `.signboard-project.md` board sidecar must not be created during reads. Preserve unknown frontmatter and Markdown bodies.
+The Projects grid and Needs you interface is owned by `app/board/overviewView.js` and its coordination view helper. Shared normalization lives in `shared/projectCoordination.js`; persisted summaries and revision-protected card coordination live in `lib/projectCoordination.js`. The optional `.signboard-project.md` board sidecar must not be created during reads. Preserve unknown frontmatter and Markdown bodies.
 
 Only explicit decision/question/review metadata belongs in Needs you; respect completed-list workflow settings and exclude archived work. Human replies clear attention, not completion or list placement. Agents must not overwrite human responses, invent evidence, or equate blocked work with a human request. Preserve dirty inline drafts and focus during background refresh. Keep MCP schemas, docs, tests, and desktop IPC aligned.
 
-The Syllabi default theme and Now workspace use white/gray/black neutral palettes in both modes. Keep CSS root defaults, `DEFAULT_BOARD_THEME_PALETTES`, the `default` scheme and DESIGN.md aligned; do not reintroduce decorative green/blue accents. Preserve explicit custom board schemes and user label colors.
+The Syllabi default theme and Projects workspace use white/gray/black neutral palettes in both modes. Keep CSS root defaults, `DEFAULT_BOARD_THEME_PALETTES`, the `default` scheme and DESIGN.md aligned; do not reintroduce decorative green/blue accents. Preserve explicit custom board schemes and user label colors.
 
 Overview is read-only during polling: pass `ensureBoardSettings: false` through batched snapshots and fallback settings reads so unavailable project roots are never recreated. Normal board activation retains its existing settings normalization. Main project tiles open source Kanban; Show details is a separate action.
 
 - Default and legacy no-scheme boards must share the Tailwind Neutral palette. Test actual theme application for missing settings, not just the named default palette; generated accents must not reintroduce green. Keep CSS Neutral tokens, renderer palettes, source pills and editor fallbacks aligned.
+
+- Kanban column colors use `shared/columnColors.js` for normalized list identities, workflow defaults, custom overrides, and readable light/dark palettes. Persist only explicit `columnColors` in board settings; targeted `columnColor` updates preserve other overrides and unrelated settings under the board transaction. Keep rename reconciliation, menu controls, and column-color tests aligned.

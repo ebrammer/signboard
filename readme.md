@@ -403,4 +403,6 @@ Signboard includes the following open source libraries:
 - [Feather Icons](https://github.com/feathericons/feather) – [MIT License](https://github.com/feathericons/feather/blob/master/LICENSE)
 - [fDatepicker](https://github.com/liedekef/fdatepicker) – [MIT License](https://github.com/liedekef/fdatepicker/blob/master/LICENSE.md)
 
-The Syllabi fork’s Overview provides a responsive Now project grid and a **Needs you** queue. Goals, next steps, agent requests and your responses stay local alongside the existing Markdown boards. See [FORK.md](FORK.md).
+The Syllabi fork’s Overview provides a responsive Projects grid and a **Needs you** queue. Goals, next steps, agent requests and your responses stay local alongside the existing Markdown boards. See [FORK.md](FORK.md).
+
+Kanban columns use workflow colors, with per-column swatches, custom colors, and reset in the column menu. Overrides stay in board settings and follow list renaming and reordering.

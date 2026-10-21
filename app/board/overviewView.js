@@ -1,7 +1,7 @@
 // Overview preserves source workflows; coordination is explicit and optional.
 function getOverviewState() {
   if (!window.__overviewState) window.__overviewState = {
-    isOpen: false, initialized: false, query: '', projects: [], tab: 'now', selectedProject: '',
+    isOpen: false, initialized: false, query: '', projects: [], tab: 'projects', selectedProject: '',
     completed: new Set(), requestId: 0, lastRefreshAt: 0,
     refreshPromise: null, signature: '', editing: null,
   };
@@ -152,7 +152,7 @@ function renderOverviewProjects() {
   if (!state.projects.length) content.appendChild(createOverviewText('p', 'overview-empty', 'No open projects. Open a board to see its work here.'));
   else if (state.tab === 'needs-you') renderOverviewRequestQueue(projects, requests, content);
   else {
-    if (state.tab === 'now') renderOverviewNeedsPreview(requests, content);
+    renderOverviewNeedsPreview(requests, content);
     const heading = document.createElement('div'); heading.className = 'overview-section-heading';
     heading.append(createOverviewText('h3', '', 'Projects'), createOverviewText('span', '', `${projects.length} project${projects.length === 1 ? '' : 's'}`));
     content.appendChild(heading);
@@ -180,7 +180,7 @@ async function refreshOverviewIfDue() {
   const state = getOverviewState(); if (!state.isOpen || Date.now() - state.lastRefreshAt < 2500) return; await renderOverviewView();
 }
 function syncOverviewBoardTheme() {
-  // Now has a workspace palette. Source editors continue using their board theme.
+  // Projects has a workspace palette. Source editors continue using their board theme.
   const overlay = document.getElementById('overviewOverlay');
   if (overlay) for (const property of Object.values(PLANNER_CARD_THEME_PROPERTIES)) overlay.style.removeProperty(property);
 }
@@ -208,7 +208,7 @@ function initializeOverviewControls() {
   input.addEventListener('keydown', (event) => {
     if (event.key === 'ArrowDown' || event.key === 'Enter') { const first = state.selectedProject ? document.querySelector('#overviewDetailBody .overview-card') || document.getElementById('overviewDetailBack') : document.querySelector('#overviewBody button'); if (first) { event.preventDefault(); first.focus(); } }
   });
-  const tabs = [['overviewNowTab', 'now'], ['overviewProjectsTab', 'projects'], ['overviewNeedsYouTab', 'needs-you']];
+  const tabs = [['overviewProjectsTab', 'projects'], ['overviewNeedsYouTab', 'needs-you']];
   for (const [id, tab] of tabs) {
     const button = document.getElementById(id);
     button.addEventListener('click', () => selectOverviewTab(tab));

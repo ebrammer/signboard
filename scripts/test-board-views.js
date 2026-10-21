@@ -72,7 +72,7 @@ class MockElement {
     this.children = [];
     this.parentNode = null;
     this.dataset = {};
-    this.style = {};
+    this.style = { setProperty(name, value) { this[name] = value; } };
     this.attributes = {};
     this.listeners = {};
     this.className = '';
@@ -295,6 +295,8 @@ function createContext() {
   context.window.document = document;
 
   vm.createContext(context);
+  loadSource(context, 'shared/columnColors.js');
+  context.window.SignboardColumnColors = context.SignboardColumnColors;
   loadSource(context, 'app/utilities/dueDateStatus.js');
   loadSource(context, 'app/utilities/taskList.js');
   loadSource(context, 'app/utilities/cardTimestamps.js');
@@ -306,6 +308,7 @@ function createContext() {
   loadSource(context, 'app/board/tableView.js');
   loadSource(context, 'app/board/plannerView.js');
   loadSource(context, 'app/lists/listActionsPopover.js');
+  loadSource(context, 'app/lists/createListElement.js');
 
   const filterButton = new MockElement('button');
   const filterLabel = new MockElement('span');
@@ -338,6 +341,73 @@ function createContext() {
 }
 
 async function run() {
+  const { context: colorsContext } = createContext();
+  colorsContext.window.boardRoot = '/tmp/colors/';
+  const list = new MockElement('section');
+  colorsContext.applyListColumnColors(list, '000-To-do-stock');
+  assert.strictEqual(list.style['--column-header-bg'], '#64748b');
+  colorsContext.applyListColumnColors(list, '001-Doing-stock');
+  assert.strictEqual(list.style['--column-header-bg'], '#2563eb');
+  colorsContext.applyListColumnColors(list, '002-Done-stock');
+  assert.strictEqual(list.style['--column-header-bg'], '#15803d');
+  colorsContext.applyListColumnColors(list, '003-Waiting-stock');
+  assert.strictEqual(list.style['--column-header-bg'], '#b45309');
+  colorsContext.applyListColumnColors(list, '004-Blocked-stock');
+  assert.strictEqual(list.style['--column-header-bg'], '#b91c1c');
+  vm.runInContext("setBoardWorkflowSettings({ ignoredCompletedListNames: ['002-Done-stock'] })", colorsContext);
+  colorsContext.applyListColumnColors(list, '002-Done-stock');
+  assert.strictEqual(list.style['--column-header-bg'], '#64748b', 'ignored completed list should use neutral workflow color');
+  vm.runInContext("setBoardColumnColors({'doing-stock': '#7c3aed'})", colorsContext);
+  colorsContext.applyListColumnColors(list, '001-Doing-stock');
+  assert.strictEqual(list.style['--column-header-bg'], '#7c3aed');
+  const lightBody = list.style['--column-body-bg'];
+  colorsContext.applyListColumnColors(list, '005-Doing-abcde');
+  assert.strictEqual(list.style['--column-header-bg'], '#2563eb', 'duplicate display names should have independent colors');
+  colorsContext.document.documentElement.dataset.theme = 'dark';
+  colorsContext.applyListColumnColors(list, '001-Doing-stock');
+  assert.notStrictEqual(list.style['--column-body-bg'], lightBody, 'mode changes should recalculate the column body tint');
+  const colorWrites = [];
+  colorsContext.window.board.updateBoardSettings = async (root, patch) => {
+    colorWrites.push({ root, patch: toPlain(patch) });
+    return vm.runInContext("({ columnColors: { 'doing-stock': '#7c3aed', 'waiting-stock': '#2563eb' } })", colorsContext);
+  };
+  const colorState = colorsContext.getBoardLabelState();
+  await colorsContext.persistBoardColumnColor('/tmp/colors/', '003-Waiting-stock', '#2563eb', colorState);
+  assert.deepStrictEqual(colorWrites[0], { root: '/tmp/colors/', patch: { columnColor: { listName: '003-Waiting-stock', color: '#2563eb' } } });
+  assert.deepStrictEqual(toPlain(colorsContext.getBoardColumnColors()), { 'doing-stock': '#7c3aed', 'waiting-stock': '#2563eb' });
+  await colorsContext.persistBoardColumnColor('/tmp/colors/', '003-Waiting-stock', null, colorState);
+  assert.strictEqual(colorWrites[1].patch.columnColor.color, null, 'reset should send a targeted removal');
+  colorsContext.window.board.updateBoardSettings = async () => { throw new Error('disk unavailable'); };
+  await assert.rejects(colorsContext.persistBoardColumnColor('/tmp/colors/', 'Doing', '#64748b', colorState), /disk unavailable/);
+  let finishColorSave;
+  colorsContext.window.board.updateBoardSettings = (root, patch) => new Promise((resolve) => { finishColorSave = resolve; });
+  const pendingColor = colorsContext.persistBoardColumnColor('/tmp/colors/', 'Doing', '#64748b', colorState);
+  await Promise.resolve();
+  await Promise.resolve();
+  colorsContext.window.boardRoot = '/tmp/foreign/';
+  colorsContext.window.__boardLabelState = undefined;
+  vm.runInContext("setBoardColumnColors({backlog: '#b91c1c'})", colorsContext);
+  finishColorSave(vm.runInContext("({ columnColors: {doing: '#64748b'} })", colorsContext));
+  await pendingColor;
+  assert.deepStrictEqual(toPlain(colorsContext.getBoardColumnColors()), { backlog: '#b91c1c' }, 'a late save must not pollute a newly selected or Planner editor board');
+  let unrelatedWrite;
+  colorsContext.window.board.updateBoardSettings = async (root, patch) => {
+    unrelatedWrite = { root, patch: toPlain(patch) };
+    return vm.runInContext('({ columnColors: {} })', colorsContext);
+  };
+  const unrelatedSave = colorsContext.persistBoardSettings({ renderBoard: false, renderControls: false });
+  colorsContext.window.boardRoot = '/tmp/new-selection/';
+  await unrelatedSave;
+  assert.strictEqual(unrelatedWrite.root, '/tmp/foreign/', 'queued settings should retain their original board');
+  assert(!Object.prototype.hasOwnProperty.call(unrelatedWrite.patch, 'columnColors'), 'unrelated settings must not overwrite cached color maps');
+  let finishSettingsRead;
+  colorsContext.window.board.readBoardSettings = () => new Promise(resolve => { finishSettingsRead = resolve; });
+  const pendingSettingsLoad = colorsContext.ensureBoardLabelsLoaded();
+  colorsContext.window.boardRoot = '/tmp/another-selection/';
+  finishSettingsRead(vm.runInContext("({ columnColors: {doing: '#64748b'} })", colorsContext));
+  await pendingSettingsLoad;
+  assert.deepStrictEqual(toPlain(colorsContext.getBoardColumnColors()), { backlog: '#b91c1c' }, 'late loads must not replace another board color state');
+
   const {
     context,
     filterButton,
@@ -637,6 +707,9 @@ async function run() {
   assert(listActionsPopover.textContent.includes('Ctrl+N'), 'expected add-card shortcut hint in list actions popover');
   assert(listActionsPopover.textContent.includes('Ctrl+Shift+N'), 'expected add-list shortcut hint in list actions popover');
   assert(listActionsPopover.textContent.includes('Order cards by due date'), 'expected due-date ordering action in list actions popover');
+  assert(listActionsPopover.textContent.includes('Column color'), 'expected per-column color controls');
+  assert(listActionsPopover.textContent.includes('Use workflow color'), 'expected workflow reset action');
+  assert(findFirstByClass(listActionsPopover, 'column-color-swatch'), 'expected preset color buttons');
 
   context.setBoardLabels(Array.from({ length: 11 }, (_, index) => createLabel(index + 1)));
   filterState.filterIds = ['label-1'];

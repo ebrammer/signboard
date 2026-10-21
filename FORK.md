@@ -24,6 +24,6 @@ Follow `AGENTS.md`, `CODEX.md`, and `docs/codex/TESTING.md`. Edit renderer modul
 
 ## Compact overview and human requests
 
-Overview opens on **Now**, with explicit requests above a stable grid of project cards. **Projects** shows the grid and **Needs you** shows the full request queue. Tap a project to open its Kanban board. Choose **Show details** to inspect its summary and original lists in a separate detail view; completed work stays behind a disclosure. Needs you gathers explicit questions, decisions, and review requests from unfinished cards. A human response resolves the attention request without moving or completing its card.
+Overview opens on **Projects**, with explicit requests above a stable grid of project cards. **Needs you** shows the full request queue. Tap a project to open its Kanban board. Choose **Show details** to inspect its summary and original lists in a separate detail view; completed work stays behind a disclosure. Needs you gathers explicit questions, decisions, and review requests from unfinished cards. A human response resolves the attention request without moving or completing its card.
 
 Project goals and next steps live in the optional `.signboard-project.md` file inside each board. Card coordination uses optional `sb_*` frontmatter alongside existing content. Opening an old board creates neither metadata nor summary files. Desktop and MCP changes use revisions to reject stale writes. Agents should read human responses before resuming and report meaningful milestones rather than continuous activity.

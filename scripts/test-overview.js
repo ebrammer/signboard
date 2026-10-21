@@ -11,6 +11,7 @@ for (const file of ['boardSnapshot.js', 'boardViews.js', 'plannerView.js', 'over
 }
 context.getBoardLabelFromPath = (root) => root.split('/').filter(Boolean).pop();
 const plain = (value) => JSON.parse(JSON.stringify(value));
+assert.equal(context.getOverviewState().tab, 'projects', 'Projects is the initial workspace overview');
 const snapshot = {
   boardName: 'Research', ok: true, errors: [],
   lists: [

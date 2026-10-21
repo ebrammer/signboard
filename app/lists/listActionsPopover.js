@@ -5,6 +5,9 @@ function getListActionsPopoverState() {
       listPath: '',
       listDisplayName: '',
       cardCount: 0,
+      requestId: 0,
+      boardRoot: '',
+      boardLabelState: null,
     };
   }
 
@@ -108,10 +111,13 @@ function closeListActionsPopover() {
   popover.setAttribute('role', 'group');
   popover.setAttribute('aria-label', `Actions for ${state.listDisplayName || 'list'}`);
 
+  state.requestId += 1;
   state.anchorElement = null;
   state.listPath = '';
   state.listDisplayName = '';
   state.cardCount = 0;
+  state.boardRoot = '';
+  state.boardLabelState = null;
 }
 
 function isListActionsPopoverOpen() {
@@ -171,8 +177,7 @@ function getListActionsPopoverOptions(popover = document.getElementById('listAct
     return [];
   }
 
-  return Array.from(popover.querySelectorAll('.list-actions-option:not(:disabled)'))
-    .filter((option) => option instanceof HTMLButtonElement)
+  return Array.from(popover.querySelectorAll('.list-actions-option:not(:disabled), .column-color-custom input:not(:disabled)'))
     .filter((option) => {
       const style = window.getComputedStyle(option);
       return style.display !== 'none' && style.visibility !== 'hidden';
@@ -402,6 +407,111 @@ function createListActionsOption(label, options = {}) {
   return button;
 }
 
+function createListColumnColorControls(state) {
+  const context = {
+    boardRoot: state.boardRoot,
+    boardLabelState: state.boardLabelState,
+    listPath: state.listPath,
+    listDisplayName: state.listDisplayName,
+    anchorElement: state.anchorElement,
+    requestId: state.requestId,
+  };
+  const listName = String(context.listPath).replace(/[\\/]+$/, '').split(/[\\/]/).pop();
+  const identity = window.SignboardColumnColors.normalizeColumnIdentity(listName);
+  const overrides = getBoardColumnColors();
+  const currentColor = window.SignboardColumnColors.getColumnColor(listName, overrides, isBoardListCompletedByWorkflow(listName));
+  const group = document.createElement('div');
+  group.className = 'column-color-controls';
+  group.setAttribute('role', 'group');
+  group.setAttribute('aria-label', 'Column color');
+  const heading = document.createElement('div');
+  heading.className = 'column-color-heading';
+  heading.textContent = 'Column color';
+  group.appendChild(heading);
+  const swatches = document.createElement('div');
+  swatches.className = 'column-color-swatches';
+  group.appendChild(swatches);
+  const errorMessage = document.createElement('div');
+  errorMessage.className = 'column-color-error';
+  errorMessage.setAttribute('role', 'alert');
+  errorMessage.hidden = true;
+  let saving = false;
+  const isCurrentMenu = () => getListActionsPopoverState().requestId === context.requestId && isListActionsPopoverOpen();
+  const saveColor = async (color, fromNativePicker = false) => {
+    if (saving) return;
+    saving = true;
+    const focusedControl = document.activeElement;
+    // A native color picker must finish tracking before its input is disabled or
+    // removed. All context above belongs to the board that opened this picker.
+    if (fromNativePicker && typeof waitForNativeMenuTrackingToSettle === 'function') {
+      await waitForNativeMenuTrackingToSettle();
+    }
+    if (isCurrentMenu()) {
+      errorMessage.hidden = true;
+      group.setAttribute('aria-busy', 'true');
+      group.querySelectorAll('button, input').forEach((control) => { control.disabled = true; });
+    }
+    try {
+      await persistBoardColumnColor(context.boardRoot, listName, color, context.boardLabelState);
+      if (window.boardRoot === context.boardRoot && getBoardLabelState() === context.boardLabelState) {
+        // Keep cards, keyboard focus, and any newly opened menu in place.
+        document.querySelectorAll('.list[data-path]').forEach((listEl) => {
+          if (listEl.dataset.path === context.listPath) applyListColumnColors(listEl, listName);
+        });
+      }
+      if (isCurrentMenu()) {
+        closeListActionsPopover();
+        if (context.anchorElement && context.anchorElement.isConnected) context.anchorElement.focus();
+      }
+      if (typeof announceSignboardStatus === 'function') {
+        announceSignboardStatus(color ? `Updated column color for ${context.listDisplayName}.` : `Restored workflow color for ${context.listDisplayName}.`);
+      }
+    } catch (error) {
+      console.error('Unable to save column color.', error);
+      if (isCurrentMenu()) {
+        group.setAttribute('aria-busy', 'false');
+        group.querySelectorAll('button, input').forEach((control) => { control.disabled = false; });
+        errorMessage.textContent = 'Column color could not be saved. Try again.';
+        errorMessage.hidden = false;
+        if (focusedControl && focusedControl.isConnected) focusedControl.focus();
+      }
+      if (typeof announceSignboardStatus === 'function') announceSignboardStatus('Column color could not be saved. Try again.');
+    } finally {
+      saving = false;
+    }
+  };
+  for (const [name, color] of [['Slate', '#64748b'], ['Blue', '#2563eb'], ['Green', '#15803d'], ['Amber', '#b45309'], ['Red', '#b91c1c'], ['Purple', '#7c3aed']]) {
+    const swatch = document.createElement('button');
+    swatch.type = 'button';
+    swatch.className = 'list-actions-option column-color-swatch';
+    swatch.style.setProperty('--column-swatch-color', color);
+    swatch.style.backgroundColor = color;
+    swatch.setAttribute('aria-label', `${name} column color`);
+    swatch.title = name;
+    swatch.setAttribute('aria-pressed', String(currentColor === color));
+    swatch.addEventListener('click', () => saveColor(color));
+    swatches.appendChild(swatch);
+  }
+  const customLabel = document.createElement('label');
+  customLabel.className = 'column-color-custom';
+  const customText = document.createElement('span');
+  customText.textContent = 'Custom color';
+  customLabel.appendChild(customText);
+  const custom = document.createElement('input');
+  custom.type = 'color';
+  custom.value = currentColor;
+  custom.setAttribute('aria-label', 'Custom column color');
+  custom.addEventListener('change', () => saveColor(custom.value, true));
+  customLabel.appendChild(custom);
+  group.appendChild(customLabel);
+  const reset = createListActionsOption('Use workflow color', { onClick: () => saveColor(null) });
+  reset.classList.add('column-color-reset');
+  reset.setAttribute('aria-pressed', String(!Object.prototype.hasOwnProperty.call(overrides, identity)));
+  group.appendChild(reset);
+  group.appendChild(errorMessage);
+  return group;
+}
+
 function renderListActionsPopover() {
   const popover = document.getElementById('listActionsPopover');
   if (!popover) {
@@ -471,6 +581,7 @@ function renderListActionsPopover() {
   popover.appendChild(moveListLeftButton);
   popover.appendChild(moveListRightButton);
   popover.appendChild(orderCardsByDueDateButton);
+  popover.appendChild(createListColumnColorControls(state));
   popover.appendChild(archiveCardsButton);
   popover.appendChild(archiveListButton);
   popover.setAttribute('aria-hidden', 'false');
@@ -501,6 +612,7 @@ function toggleListActionsPopover({
 
   if (isOpenForAnchor) {
     closeListActionsPopover();
+    anchorElement.focus();
     return;
   }
 
@@ -514,6 +626,9 @@ function toggleListActionsPopover({
     closeBoardViewPopover();
   }
 
+  state.requestId += 1;
+  state.boardRoot = window.boardRoot;
+  state.boardLabelState = getBoardLabelState();
   state.anchorElement = anchorElement;
   state.listPath = String(listPath || '').trim();
   state.listDisplayName = String(listDisplayName || '').trim();

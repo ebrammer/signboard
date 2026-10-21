@@ -60,12 +60,12 @@ async function expectNeutralColors(page, selectors) {
 const panel = (page) => page.locator('#overviewCoordinationPanel');
 const update = async (cardPath, patch) => coordination.updateCardCoordination(path.dirname(path.dirname(cardPath)), cardPath, patch, (await cardFrontmatter.readCard(cardPath)).revision);
 
-test('Now projects preserve legacy bytes, omit absent metadata, edit summaries and coordinate a human reply', async ({}, testInfo) => {
+test('Projects preserve legacy bytes, omit absent metadata, edit summaries and coordinate a human reply', async ({}, testInfo) => {
   await withApp(async ({ page, boards, cardPath }) => {
     const before = await fs.readFile(cardPath, 'utf8');
     await expect(page.locator('.overview-project')).toHaveCount(5);
     await expect(page.locator('.overview-card')).toHaveCount(0);
-    await expect(page.locator('#overviewNowTab')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#overviewProjectsTab')).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('#overviewBody')).not.toContainText('No goal set');
     await expect(page.locator('.overview-project .overview-goal')).toHaveCount(0);
     await expect(page.locator('.overview-needs-preview')).toHaveCount(0);
@@ -248,7 +248,7 @@ test('Overview controls follow light and dark palettes and long requests fit nar
   });
 });
 
-test('Now grid responds to window width, keeps board order through updates and restores card focus from detail', async ({}, testInfo) => {
+test('Projects grid responds to window width, keeps board order through updates and restores card focus from detail', async ({}, testInfo) => {
   await withApp(async ({ page, boards, cardPath }) => {
     const expectedOrder = boards.map(normalizeRoot);
     const order = () => page.locator('.overview-project [data-overview-project]').evaluateAll((buttons) => buttons.map((button) => button.dataset.overviewProject));
@@ -334,7 +334,7 @@ test('Now grid responds to window width, keeps board order through updates and r
   }, 5);
 });
 
-test('Now shows a bounded request preview above projects and View all exposes the full queue', async ({}, testInfo) => {
+test('Projects shows a bounded request preview above projects and View all exposes the full queue', async ({}, testInfo) => {
   await withApp(async ({ page, boards }) => {
     const requests = [];
     for (let index = 0; index < 3; index += 1) {
@@ -359,8 +359,6 @@ test('Now shows a bounded request preview above projects and View all exposes th
     await page.screenshot({ path: testInfo.outputPath('now-full-request-queue.png') });
     await page.locator('#overviewProjectsTab').click();
     await expect(page.locator('.overview-project')).toHaveCount(5);
-    await expect(page.locator('.overview-needs-preview')).toHaveCount(0);
-    await page.locator('#overviewNowTab').click();
     await expect(page.locator('.overview-needs-preview .overview-request')).toHaveCount(2);
   }, 5);
 });

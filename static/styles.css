@@ -167,25 +167,6 @@ html, body { margin: 0; height: 100%; }
   --task-progress-complete-color: var(--muted);
 }
 
-:root[data-board-color-scheme="cozy-blush"]:not([data-theme="dark"]) .list {
-  background: color-mix(in oklab, #d8e2dc 92%, #ffffff);
-  border-color: color-mix(in oklab, #f4acb7 58%, #d8e2dc);
-  box-shadow: 0 8px 20px rgba(157, 129, 137, 0.12);
-}
-
-:root[data-board-color-scheme="cozy-blush"]:not([data-theme="dark"]) .list-header {
-  border-bottom-color: color-mix(in oklab, #f4acb7 44%, #ffe5d9);
-}
-
-:root[data-board-color-scheme="cozy-blush"]:not([data-theme="dark"]) .list-actions-button {
-  background: color-mix(in oklab, #fff7f2 82%, #d8e2dc);
-  border-color: color-mix(in oklab, #f4acb7 55%, #d8e2dc);
-}
-
-:root[data-board-color-scheme="cozy-blush"]:not([data-theme="dark"]) .list-actions-button:hover {
-  background: color-mix(in oklab, #ffe5d9 78%, #ffffff);
-}
-
 :root[data-board-color-scheme="cozy-blush"]:not([data-theme="dark"]) .card > .card-drag-frame,
 :root:not([data-theme="dark"]) .planner-overlay[data-board-color-scheme="cozy-blush"] .board-temporal-card-frame {
   background: color-mix(in oklab, #ffe5d9 74%, #ffffff);
@@ -235,10 +216,11 @@ body:not(.board-empty) > header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas: "tabs controls";
-  align-items: end;
+  align-items: center;
   gap: 8px 12px;
   padding-left: var(--spacing);
   padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 .headerTopRow {
@@ -556,8 +538,8 @@ body:not(.board-empty) #boardTabsWrapper {
 
 #boardTabs {
   display: flex;
-  align-items: flex-end;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   min-width: 0;
   overflow: hidden;
@@ -572,24 +554,22 @@ body:not(.board-empty) #boardTabs {
   cursor: grab;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   flex: 0 0 auto;
-  max-width: 180px;
+  max-width: 220px;
   min-width: 0;
+  min-height: 44px;
   border: 1px solid color-mix(in oklab, var(--border) 85%, var(--bg));
-  border-bottom-color: color-mix(in oklab, var(--border) 60%, var(--bg));
-  border-radius: 10px 10px 0 0;
-  background: color-mix(in oklab, var(--bg-card) 80%, var(--border));
+  border-radius: 999px;
+  background: var(--bg-card);
   color: var(--muted);
-  opacity: .92;
-  padding: 0 8px 0 12px;
-  transform: translateY(1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, .03);
-  transition: transform .12s ease, opacity .12s ease, background .12s ease, color .12s ease, border-color .12s ease, box-shadow .12s ease;
+  padding: 0 10px 0 18px;
+  transition: background .12s ease, color .12s ease, border-color .12s ease, box-shadow .12s ease;
 }
 
 .board-tab:hover {
-  opacity: .95;
+  background: color-mix(in oklab, var(--bg-card) 88%, var(--border));
+  color: var(--text);
 }
 
 .board-tab-label {
@@ -601,7 +581,8 @@ body:not(.board-empty) #boardTabs {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 6px 0 8px;
+  min-height: 42px;
+  padding: 10px 0;
   cursor: pointer;
 }
 
@@ -609,9 +590,10 @@ body:not(.board-empty) #boardTabs {
   border: 0;
   background: transparent;
   color: color-mix(in oklab, var(--muted) 85%, var(--text));
-  border-radius: 6px;
-  width: 18px;
-  height: 18px;
+  border-radius: 999px;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -631,36 +613,14 @@ body:not(.board-empty) #boardTabs {
 .board-tab-label:focus-visible,
 .board-tab-close:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--accent) 55%, var(--bg-card));
-  outline-offset: 2px;
+  outline-offset: -3px;
 }
 
 .board-tab.is-active {
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, var(--bg-card) 92%, var(--accent) 8%) 0%,
-    var(--bg) 100%
-  );
-  border-color: color-mix(in oklab, var(--accent) 24%, var(--border));
-  border-bottom-color: var(--bg);
-  color: var(--text);
-  opacity: 1;
-  transform: translateY(0);
-  box-shadow:
-    0 8px 18px var(--shadow),
-    inset 0 1px 0 color-mix(in oklab, var(--bg-card) 78%, #ffffff);
-  position: relative;
-  z-index: 2;
-}
-
-.board-tab.is-active::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 12px;
-  right: 12px;
-  height: 3px;
-  border-radius: 999px;
-  background: color-mix(in oklab, var(--accent) 44%, var(--bg-card));
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg-card);
+  box-shadow: 0 2px 6px var(--shadow);
 }
 
 .board-tab.is-active .board-tab-label {
@@ -668,7 +628,15 @@ body:not(.board-empty) #boardTabs {
 }
 
 .board-tab.is-active .board-tab-close {
-  color: color-mix(in oklab, var(--text) 72%, var(--muted));
+  color: inherit;
+}
+
+.board-tab.is-active .board-tab-close:hover {
+  background: color-mix(in oklab, var(--text) 80%, var(--bg-card));
+}
+
+@media (forced-colors: active) {
+  .board-tab.is-active { outline: 2px solid Highlight; outline-offset: -2px; }
 }
 
 .board-tab--chosen {
@@ -690,7 +658,7 @@ body:not(.board-empty) #boardTabs {
 .board-tab-more {
   cursor: default;
   max-width: none;
-  padding-right: 12px;
+  padding-right: 18px;
 }
 
 .board-tab-more .board-tab-label {
@@ -699,14 +667,25 @@ body:not(.board-empty) #boardTabs {
 
 .board-tab-add {
   cursor: default;
-  max-width: none;
+  order: -1;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  height: 44px;
   opacity: 1;
-  transform: translateY(1px);
-  padding-right: 12px;
+  padding: 0;
 }
 
 .board-tab-add .board-tab-label {
-  padding-right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border-radius: inherit;
+  font-size: 24px;
+  line-height: 1;
 }
 
 .board-tab-add .board-tab-label:disabled {
@@ -2385,14 +2364,12 @@ body.board-empty main#board {
   cursor: grab;
   display: flex;
   flex-direction: column;
-  gap: var(--card-gap);
+  gap: 8px;
   min-width: var(--list-min);
   max-width: var(--list-max);
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 12px;
-  box-shadow: 0 6px 18px var(--shadow);
+  background: transparent;
+  border: 0;
+  padding: 0;
   flex: 0 0 auto; /* don’t stretch; behave like a column */
 }
 
@@ -2402,44 +2379,66 @@ body.board-empty main#board {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 2px 10px 2px;
-  border-bottom: 1px solid color-mix(in oklab, var(--border) 80%, var(--bg));
+  min-height: 46px;
+  padding: 6px 10px;
+  background: var(--column-header-bg, var(--color-neutral-700));
+  border: 1px solid var(--column-border, var(--color-neutral-600));
+  border-radius: var(--radius);
+  box-shadow: 0 2px 6px var(--shadow);
   font-size: var(--font-sm);
   font-weight: 600;
   letter-spacing: .2px;
-  color: var(--text);
+  color: var(--column-header-text, var(--color-white));
+}
+
+.list-header [contenteditable] {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* List actions button shown in list headers */
 .list-actions-button {
-  background: var(--bg-card);
-  color: var(--text);
-  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  border: 0;
   border-radius: var(--radius);
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 1px 0 rgba(0,0,0,.02);
+  box-shadow: none;
 }
 .list-actions-button svg {
   width: 16px;
   height: 16px;
 }
 .list-actions-button:hover {
-  background: color-mix(in oklab, var(--bg-card) 94%, var(--border));
+  background: color-mix(in oklab, var(--color-white) 14%, transparent);
 }
 .list-actions-button:focus-visible {
-  outline: 3px solid color-mix(in oklab, var(--accent) 45%, var(--bg-card));
+  outline: 2px solid var(--color-white);
 }
 
 .cards {
   min-height: 125px;
-  padding-top: 15px;
-  padding-bottom: 50px;
+  padding: 10px;
+  background: var(--column-body-bg, color-mix(in oklab, var(--bg-card) 94%, #000000));
+  border: 1px solid var(--column-border, var(--border));
+  border-radius: var(--radius-lg);
+  box-shadow: 0 6px 18px var(--shadow);
+}
+
+.cards > .card {
+  margin-bottom: var(--card-gap);
+}
+
+.cards > .card:last-child {
+  margin-bottom: 0;
 }
 
 /* 5) Cards */
@@ -2459,7 +2458,7 @@ body.board-empty main#board {
   color: var(--text);
   border: 1px solid color-mix(in oklab, var(--border) 92%, var(--bg-card));
   border-radius: var(--radius);
-  padding: 10px 10px;
+  padding: 8px;
   box-shadow: 0 2px 10px var(--shadow-card);
 }
 
@@ -2513,9 +2512,9 @@ body.board-card-drag-active * {
 }
 
 .card h3 {
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
   font-size: var(--font-md);
-  font-weight: 400;
+  font-weight: 700;
   line-height: 1.3;
 }
 .card-title-button {
@@ -2546,6 +2545,28 @@ body.board-card-drag-active * {
   color: var(--muted);
   overflow-wrap: anywhere;
 }
+.card-body > p {
+  margin: 0;
+}
+
+.card-body > p:empty {
+  display: none;
+}
+
+.card .metadata {
+  justify-content: flex-start;
+  gap: 4px 6px;
+  margin-top: 12px;
+}
+
+.card .metadata-action-empty {
+  order: 1;
+}
+
+.card .card-labels:empty {
+  display: none;
+}
+
 .metadata {
   display: flex;
   align-items: center;
@@ -2820,7 +2841,8 @@ button:focus-visible { outline: 3px solid color-mix(in oklab, var(--accent) 45%,
   }
 
   .card > .card-drag-frame,
-  .list,
+  .list-header,
+  .cards,
   .modal,
   .card-date-popover,
   .label-popover,
@@ -5195,6 +5217,77 @@ button:focus-visible { outline: 3px solid color-mix(in oklab, var(--accent) 45%,
   color: color-mix(in oklab, var(--accent) 80%, var(--text));
 }
 
+.column-color-controls {
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  padding: 10px 10px 4px;
+  display: grid;
+  gap: 8px;
+}
+
+.column-color-heading {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.column-color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.column-color-swatches .column-color-swatch {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--column-swatch-color);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12);
+}
+
+.column-color-swatch[aria-pressed="true"] {
+  border-color: var(--bg-card);
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+
+.column-color-custom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--font-sm);
+}
+
+.column-color-custom input[type="color"] {
+  width: 36px;
+  height: 28px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  cursor: pointer;
+}
+
+.column-color-controls .column-color-reset {
+  font-size: var(--font-xs);
+}
+
+.column-color-error {
+  margin: 0;
+  color: var(--due-date-today-color);
+  font-size: var(--font-xs);
+  max-width: 260px;
+}
+
+@media (forced-colors: active) {
+  .column-color-swatch { forced-color-adjust: none; border: 1px solid CanvasText; }
+  .column-color-swatch[aria-pressed="true"] { outline: 2px solid Highlight; }
+}
+
 .list-actions-option {
   width: 100%;
   display: flex;
@@ -6378,11 +6471,11 @@ select:disabled {
 @media print {
   body > header, .workspace-view-dock, .planner-overlay { display: none !important; }
   main#board { overflow: visible; }
-  .list { box-shadow: none; border-color: #bbb; }
+  .list-header, .cards { box-shadow: none; border-color: #bbb; }
   .card { box-shadow: none; border-color: #bbb; }
 }
 
-/* Now and its body-level tooltips use the neutral workspace palette. */
+/* Projects and its body-level tooltips use the neutral workspace palette. */
 .overview-overlay, body.overview-open #sbTooltip {
   --bg: var(--color-neutral-50); --bg-card: var(--color-white); --text: var(--color-neutral-900); --muted: var(--color-neutral-600);
   --border: var(--color-neutral-300); --accent: var(--color-neutral-800); --accent-contrast: var(--color-white);

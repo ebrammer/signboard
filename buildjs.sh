@@ -5,6 +5,7 @@
 cat \
   shared/appSettingsSchema.js \
   shared/localDate.js \
+  shared/columnColors.js \
   shared/projectCoordination.js \
   app/utilities/santizeFileName.js \
   app/utilities/timestampListItem.js \

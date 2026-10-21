@@ -2666,9 +2666,38 @@ function createWindow() {
             Array.from(document.querySelectorAll('.card-title-button')).some(node => node.textContent.trim() === expected.boards[0].title) &&
             document.querySelector('#workspaceViewOverview svg'), 'Renderer initialization / persisted fixture restore');
           const restoredBoardRoot = normalizeRoot(window.boardRoot);
+          const firstList = document.querySelector('#board .list');
+          const listHeaderRect = firstList.querySelector('.list-header').getBoundingClientRect();
+          const listBodyRect = firstList.querySelector('.cards').getBoundingClientRect();
+          if (listBodyRect.top - listHeaderRect.bottom < 6 || listBodyRect.top - listHeaderRect.bottom > 10 ||
+              Math.abs(listHeaderRect.width - listBodyRect.width) > 1) {
+            throw new Error('Kanban header must be separate from and aligned with its column body.');
+          }
+          const columnIdentity = window.SignboardColumnColors.normalizeColumnIdentity(expected.boards[0].list);
+          const column = () => document.querySelector('#board .list');
+          const expectedAutomaticColor = window.SignboardColumnColors.getColumnPalette(
+            window.SignboardColumnColors.getColumnColor(expected.boards[0].list, {}, false), false).header;
+          if (column().style.getPropertyValue('--column-header-bg') !== expectedAutomaticColor) {
+            throw new Error('Kanban must apply workflow column colors before opening settings.');
+          }
+          column().querySelector('.list-actions-button').click();
+          document.querySelector('.column-color-swatch[aria-label="Blue column color"]').click();
+          await waitFor(() => !isListActionsPopoverOpen() && getBoardColumnColors()[columnIdentity] === '#2563eb' &&
+            column().style.getPropertyValue('--column-header-bg') === '#2563eb', 'Custom column color from menu');
+          const savedColumnSettings = await window.board.readBoardSettings(expected.boards[0].root);
+          if (savedColumnSettings.columnColors[columnIdentity] !== '#2563eb') throw new Error('Column color must persist.');
+          column().querySelector('.list-actions-button').click();
+          document.querySelector('.column-color-reset').click();
+          await waitFor(() => !isListActionsPopoverOpen() && !getBoardColumnColors()[columnIdentity] &&
+            column().style.getPropertyValue('--column-header-bg') === expectedAutomaticColor, 'Reset workflow column color');
           document.getElementById('workspaceViewOverview').click();
+          if (document.getElementById('overviewNowTab') ||
+              document.querySelectorAll('#overviewOverlay [role="tab"]').length !== 2 ||
+              document.getElementById('overviewProjectsTab')?.getAttribute('aria-selected') !== 'true') {
+            throw new Error('Overview must start on Projects with only Projects and Needs you tabs.');
+          }
           await waitFor(() => document.querySelectorAll('#overviewBody .overview-project').length === expected.boards.length,
-            'Now project grid');
+            'Projects grid');
           const overviewProjects = document.querySelectorAll('#overviewBody .overview-project').length;
           const overviewCardTitles = [];
           for (const expectedBoard of expected.boards) {
@@ -2697,14 +2726,14 @@ function createWindow() {
               `Project Kanban: ${expectedBoard.name}`);
             document.getElementById('workspaceViewOverview').click();
             await waitFor(() => !document.getElementById('overviewOverlay').classList.contains('hidden') &&
-              document.querySelectorAll('#overviewBody .overview-project').length === expected.boards.length, 'Return to Now');
+              document.querySelectorAll('#overviewBody .overview-project').length === expected.boards.length, 'Return to Projects');
           }
           await waitFor(() => {
             const overlay = document.getElementById('overviewOverlay');
             return overlay && !overlay.classList.contains('hidden') && overlay.getAttribute('aria-hidden') === 'false' &&
               document.getElementById('workspaceViewOverview').getAttribute('aria-pressed') === 'true' &&
               expected.boards.every(board => overviewCardTitles.includes(board.title)) && overviewCardTitles.length === expected.boards.length;
-          }, 'Functional Now grid and source details');
+          }, 'Functional Projects grid and source details');
           return {
             rendererLoaded: true, rendererInitialized: true, fixtureBoardVisible: true, overviewLoaded: true,
             restoredBoardRoot, overviewCardTitles, overviewProjects, overviewCards: overviewCardTitles.length,

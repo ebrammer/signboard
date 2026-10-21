@@ -47,9 +47,8 @@
     <aside class="overview-rail" aria-label="Project navigation">
       <div class="overview-brand">Signboard</div>
       <div class="overview-tabs" role="tablist" aria-label="Project views">
-        <button id="overviewNowTab" type="button" role="tab" aria-selected="true" aria-controls="overviewBody"><i data-feather="home" aria-hidden="true"></i><span>Now</span></button>
-        <button id="overviewProjectsTab" type="button" role="tab" aria-selected="false" aria-controls="overviewBody"><i data-feather="folder" aria-hidden="true"></i><span>Projects</span></button>
-        <button id="overviewNeedsYouTab" type="button" role="tab" aria-selected="false" aria-controls="overviewBody"><i data-feather="bell" aria-hidden="true"></i><span>Needs you</span><span id="overviewRequestCount" class="overview-nav-count"></span></button>
+        <button id="overviewProjectsTab" type="button" role="tab" aria-selected="true" aria-controls="overviewBody"><i data-feather="folder" aria-hidden="true"></i><span>Projects</span></button>
+        <button id="overviewNeedsYouTab" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="overviewBody"><i data-feather="bell" aria-hidden="true"></i><span>Needs you</span><span id="overviewRequestCount" class="overview-nav-count"></span></button>
       </div>
       <nav class="overview-workspace-nav" aria-label="Workspace views">
         <span class="overview-rail-caption">Workspace</span>
@@ -60,7 +59,7 @@
     </aside>
     <div class="overview-main">
       <div class="overview-header">
-        <h2 id="overviewTitle">Now</h2>
+        <h2 id="overviewTitle">Projects</h2>
         <div class="overview-header-controls">
           <input id="overviewSearchInput" type="search" placeholder="Search projects…" aria-label="Search projects, goals, requests, cards or notes">
           <button id="overviewCloseButton" type="button" title="Return to workspace" aria-label="Return to workspace"><i data-feather="x"></i></button>
@@ -68,7 +67,7 @@
       </div>
       <p id="overviewNavigationError" class="overview-navigation-error hidden" role="status"></p>
       <div class="overview-content">
-        <div id="overviewBody" class="overview-body" role="tabpanel"></div>
+        <div id="overviewBody" class="overview-body" role="tabpanel" aria-labelledby="overviewProjectsTab"></div>
         <section id="overviewProjectDetail" class="overview-project-detail hidden" aria-labelledby="overviewDetailTitle">
           <div class="overview-detail-header"><button id="overviewDetailBack" type="button">← Back to projects</button></div>
           <div id="overviewDetailBody" class="overview-detail-body"></div>

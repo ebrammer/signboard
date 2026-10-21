@@ -88,4 +88,6 @@ When in doubt, follow [CODEX.md](./CODEX.md).
 
 Read `FORK.md` for fork identity, compatible board adoption, and update policy. Keep existing Markdown board formats and custom workflows intact. Never upload local test evidence or personal board data.
 
-- Now, the project grid, and Needs you are human-facing: show explicit requests, preserve replies, and never silently move/complete cards when a request is answered. Follow CODEX.md’s project coordination contract and MCP reference.
+- Projects and Needs you are human-facing: show explicit requests, preserve replies, and never silently move/complete cards when a request is answered. Follow CODEX.md’s project coordination contract and MCP reference.
+
+- Kanban column colors use `shared/columnColors.js` for normalized list identities, workflow defaults, custom overrides, and readable light/dark palettes. Persist only explicit `columnColors` in board settings; targeted `columnColor` updates preserve other overrides and unrelated settings under the board transaction. Keep rename reconciliation, menu controls, and column-color tests aligned.

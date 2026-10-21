@@ -214,6 +214,10 @@ Overview lives in `app/board/overviewView.js`, aggregates existing batched snaps
 - `lib/projectCoordination.js`: optional project sidecar and safe card coordination operations.
 - `shared/projectCoordination.js`: browser/Node normalization and validation contract.
 - `app/board/overviewView.js`: snapshot/search/refresh lifecycle and source-card navigation.
-- `app/board/overviewGridView.js`: Now/Projects grid, request preview, and separate selected-project details.
+- `app/board/overviewGridView.js`: Projects grid, request preview, and separate selected-project details.
 - `app/board/projectCoordinationView.js`: human request display, project/card coordination forms, replies and stale-draft recovery.
 - Coordination controls/tests accompany the Overview; keep dirty drafts separate from snapshot rerenders.
+
+- `shared/columnColors.js`: shared list-color identity, defaults, override normalization, and contrast-safe light/dark palettes.
+- `scripts/test-column-colors.js`: color persistence, defaults/contrast, list rename and targeted update regressions.
+- `tests/playwright/column-colors.spec.js`: column-menu customization/reset and renderer regression coverage.

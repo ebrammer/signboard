@@ -70,6 +70,12 @@ You can create a list in a few ways:
 
 Signboard creates a numbered folder for the list and keeps ordering based on that folder prefix.
 
+### Color a list
+
+Columns follow their workflow type: slate for To-do, blue for Doing, green for completed lists, amber for Waiting or review, and red for Blocked. Unrecognized names use slate; completion follows the board’s Workflow settings.
+
+Open a column’s **…** menu to pick a color swatch or a custom color. Choose **Use workflow color** to reset it. The header uses a dark, readable shade and the column body uses a subtle tint, while cards keep their existing colors. Custom colors are saved with the board and follow list renaming and reordering.
+
 ### Rename a list
 
 Click a list title, edit it inline, and press `Enter` or click away.
@@ -523,7 +529,7 @@ You can also open the shortcut helper from `Help > Keyboard Shortcuts`.
 
 ## Keep the big picture nearby
 
-Open **Overview** to start on **Now**: requests needing your attention appear above a grid of your open projects. **Projects** shows the project grid; **Needs you** shows the full request queue. The grid adapts from one to three columns and keeps projects in their existing order as agents update them. Each card emphasizes current work, the next step, and the latest recorded update. Goals appear only when supplied.
+Open **Overview** to start on **Projects**: requests needing your attention appear above a grid of your open projects. **Needs you** shows the full request queue. The grid adapts from one to three columns and keeps projects in their existing order as agents update them. Each card emphasizes current work, the next step, and the latest recorded update. Goals appear only when supplied.
 
 Tap a project card to open that project’s Kanban board. Choose **Show details** for its full summary and original board lists. On wide windows the detail sits beside the grid; on smaller windows it replaces the grid until you choose **Back**. Set the project goal and next step there, and reveal completed lists when needed. Search still finds titles, notes and coordination text, including completed work; open the matching project to inspect its source cards.
 

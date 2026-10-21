@@ -2115,6 +2115,34 @@ function setBoardWorkflowSettings(workflowSettings) {
   getBoardLabelState().workflowSettings = normalizeBoardWorkflowSettings(workflowSettings);
 }
 
+function getBoardColumnColors() {
+  return window.SignboardColumnColors.normalizeColumnColors(getBoardLabelState().columnColors);
+}
+
+function setBoardColumnColors(columnColors) {
+  getBoardLabelState().columnColors = window.SignboardColumnColors.normalizeColumnColors(columnColors);
+}
+
+// Share the settings queue and send a targeted patch. The main process merges
+// it with the latest map under the board transaction lock.
+function persistBoardColumnColor(boardRoot, listName, color, state = getBoardLabelState()) {
+  const identity = window.SignboardColumnColors.normalizeColumnIdentity(listName);
+  if (!boardRoot || !identity) return Promise.reject(new Error('Column color is unavailable.'));
+  const operation = state.settingsSaveInFlight.catch(() => {}).then(async () => {
+    const result = await window.board.updateBoardSettings(boardRoot, {
+      columnColor: { listName, color: color || null },
+    });
+    if (window.boardRoot === boardRoot && getBoardLabelState() === state) {
+      setBoardColumnColors(result.columnColors);
+    }
+    return result;
+  });
+  // Keep later saves usable after a failure; the caller still receives rejection
+  // and leaves its menu open with an accessible retry message.
+  state.settingsSaveInFlight = operation.catch(() => {});
+  return operation;
+}
+
 function getBoardExternalPublishedCalendarSettings() {
   return normalizeBoardExternalPublishedCalendarSettings(getBoardLabelState().externalPublishedCalendarSettings);
 }
@@ -2150,6 +2178,7 @@ function getBoardLabelState() {
       activeCardLabelPopover: null,
       cardCreationLabelIdsByContext: new Map(),
       colorScheme: '',
+      columnColors: {},
       themeOverrides: { light: {}, dark: {} },
       themePalettes: {
         light: { ...DEFAULT_BOARD_THEME_PALETTES.light },
@@ -3683,21 +3712,24 @@ function persistBoardSettings(options = {}) {
   const state = getBoardLabelState();
   const shouldRenderBoard = options.renderBoard !== false;
   const shouldRenderControls = options.renderControls !== false;
+  const boardRoot = window.boardRoot;
+  const partialSettings = {
+    labels: getBoardLabels(),
+    colorScheme: getBoardColorScheme(),
+    themeOverrides: getBoardThemeOverrides(),
+    workflow: getBoardWorkflowSettings(),
+    externalPublishedCalendar: getBoardExternalPublishedCalendarSettings(),
+  };
 
   state.settingsSaveInFlight = state.settingsSaveInFlight
     .then(async () => {
-      if (!window.boardRoot) {
-        return;
-      }
-
-      const result = await window.board.updateBoardSettings(window.boardRoot, {
-        labels: getBoardLabels(),
-        colorScheme: getBoardColorScheme(),
-        themeOverrides: getBoardThemeOverrides(),
-        workflow: getBoardWorkflowSettings(),
-        externalPublishedCalendar: getBoardExternalPublishedCalendarSettings(),
-      });
+      if (!boardRoot) return;
+      // Column overrides are deliberately omitted: unrelated settings edits must
+      // preserve the latest map on disk rather than send a cached whole map.
+      const result = await window.board.updateBoardSettings(boardRoot, partialSettings);
+      if (window.boardRoot !== boardRoot || getBoardLabelState() !== state) return;
       setBoardLabels(result.labels || []);
+      setBoardColumnColors(result.columnColors || {});
       setBoardWorkflowSettings(result.workflow || {});
       setBoardExternalPublishedCalendarSettings(result.externalPublishedCalendar || {});
       const savedSchemeId = result.colorScheme || '';
@@ -4547,6 +4579,7 @@ async function ensureBoardLabelsLoaded() {
     state.importSummaryBoardRoot = '';
     resetBoardLabelFilter();
     setBoardLabels([]);
+    setBoardColumnColors({});
     setBoardWorkflowSettings({});
     setBoardExternalPublishedCalendarSettings({});
     applyColorSchemeById('light', { renderControls: false });
@@ -4561,8 +4594,12 @@ async function ensureBoardLabelsLoaded() {
     return;
   }
 
-  const settings = await window.board.readBoardSettings(window.boardRoot);
+  const boardRoot = window.boardRoot;
+  const state = getBoardLabelState();
+  const settings = await window.board.readBoardSettings(boardRoot);
+  if (window.boardRoot !== boardRoot || getBoardLabelState() !== state) return;
   setBoardLabels(settings.labels || []);
+  setBoardColumnColors(settings.columnColors || {});
   setBoardWorkflowSettings(settings.workflow || {});
   setBoardExternalPublishedCalendarSettings(settings.externalPublishedCalendar || {});
   const loadedSchemeId = settings.colorScheme || '';

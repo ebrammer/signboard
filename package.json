@@ -44,6 +44,7 @@
     "test:frontmatter": "node scripts/test-frontmatter.js",
     "test:card-ordering": "node scripts/test-card-ordering.js",
     "test:board-labels": "node scripts/test-board-labels.js",
+    "test:column-colors": "node scripts/test-column-colors.js",
     "test:board-snapshot": "node scripts/test-board-snapshot.js",
     "test:board-duplication": "node scripts/test-board-duplication.js",
     "test:app-settings": "node scripts/test-app-settings.js",

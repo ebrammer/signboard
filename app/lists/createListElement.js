@@ -1,7 +1,21 @@
+function applyListColumnColors(listEl, name) {
+  const columnColor = window.SignboardColumnColors.getColumnColor(
+    name,
+    getBoardColumnColors(),
+    isBoardListCompletedByWorkflow(name),
+  );
+  const columnPalette = window.SignboardColumnColors.getColumnPalette(columnColor, getBoardThemeMode() === 'dark');
+  listEl.style.setProperty('--column-header-bg', columnPalette.header);
+  listEl.style.setProperty('--column-header-text', columnPalette.headerText);
+  listEl.style.setProperty('--column-body-bg', columnPalette.body);
+  listEl.style.setProperty('--column-border', columnPalette.border);
+}
+
 async function createListElement(name, listPath, cardNames, options = {}) {
   const listEl = document.createElement('section');
   listEl.className = 'list';
   listEl.dataset.path = listPath;
+  applyListColumnColors(listEl, name);
 
   const header = document.createElement('div');
   header.className = 'list-header';

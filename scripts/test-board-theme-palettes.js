@@ -106,6 +106,8 @@ async function testThemeApplication() {
     OverType: { setTheme: (theme) => { editorTheme = toPlain(theme); } },
     getAppAppearanceSettings: () => ({ mode: appearanceMode, themeSource: 'signboard' }),
   });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../shared/columnColors.js'), 'utf8'), context);
+  context.window.SignboardColumnColors = context.SignboardColumnColors;
   vm.runInContext(source, context);
   const themeSource = fs.readFileSync(path.join(__dirname, '../app/ui/theme.js'), 'utf8');
   vm.runInContext(themeSource, context);

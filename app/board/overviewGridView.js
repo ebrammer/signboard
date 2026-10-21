@@ -1,19 +1,19 @@
-// Now's grid and detail are projections of source cards, never a second work model.
+// Projects' grid and detail are projections of source cards, never a second work model.
 function syncOverviewNavigation(requestCount) {
   const state = getOverviewState();
-  for (const [id, tab] of [['overviewNowTab', 'now'], ['overviewProjectsTab', 'projects'], ['overviewNeedsYouTab', 'needs-you']]) {
+  for (const [id, tab] of [['overviewProjectsTab', 'projects'], ['overviewNeedsYouTab', 'needs-you']]) {
     const button = document.getElementById(id);
     button.setAttribute('aria-selected', String(state.tab === tab)); button.tabIndex = state.tab === tab ? 0 : -1;
   }
   const badge = document.getElementById('overviewRequestCount'); badge.textContent = requestCount || ''; badge.hidden = !requestCount;
   document.getElementById('overviewNeedsYouTab').setAttribute('aria-label', `Needs you${requestCount ? `, ${requestCount} requests` : ''}`);
-  document.getElementById('overviewTitle').textContent = state.tab === 'now' ? 'Now' : state.tab === 'projects' ? 'Projects' : 'Needs you';
-  document.getElementById('overviewBody').setAttribute('aria-labelledby', state.tab === 'now' ? 'overviewNowTab' : state.tab === 'projects' ? 'overviewProjectsTab' : 'overviewNeedsYouTab');
+  document.getElementById('overviewTitle').textContent = state.tab === 'projects' ? 'Projects' : 'Needs you';
+  document.getElementById('overviewBody').setAttribute('aria-labelledby', state.tab === 'projects' ? 'overviewProjectsTab' : 'overviewNeedsYouTab');
   for (const button of document.querySelectorAll('[data-overview-workspace]')) button.disabled = !window.boardRoot;
 }
 function selectOverviewTab(tab) {
   const state = getOverviewState(); state.tab = tab; state.selectedProject = ''; renderOverviewProjects();
-  document.getElementById(tab === 'now' ? 'overviewNowTab' : tab === 'projects' ? 'overviewProjectsTab' : 'overviewNeedsYouTab').focus({ preventScroll: true });
+  document.getElementById(tab === 'projects' ? 'overviewProjectsTab' : 'overviewNeedsYouTab').focus({ preventScroll: true });
 }
 function overviewCurrentCard(project) {
   return project.active[0] || project.blocked[0] || project.lists.flatMap((list) => list.cards).find((card) => !card.isCompletedList && card.coordination.summary) || null;
@@ -150,7 +150,7 @@ function renderOverviewProjectDetail(projects) {
   content.appendChild(overviewTimestamp(original));
   const edit = overviewButton('Edit summary', 'overview-edit-summary', () => openOverviewCoordinationEditor({ project: original })); edit.dataset.focusKey = `summary:${original.boardRoot}`; content.appendChild(edit);
   if (original.error || original.briefError) {
-    const warning = createOverviewText('p', 'overview-source-warning', `Some project files could not be read. ${original.briefError ? `Project summary: ${original.briefError}` : 'Check folder access. Now will retry automatically.'}`); warning.setAttribute('role', 'status'); content.appendChild(warning);
+    const warning = createOverviewText('p', 'overview-source-warning', `Some project files could not be read. ${original.briefError ? `Project summary: ${original.briefError}` : 'Check folder access. Projects will retry automatically.'}`); warning.setAttribute('role', 'status'); content.appendChild(warning);
   }
   if (original.requests.length) {
     content.appendChild(createOverviewText('h4', 'overview-detail-section-title', 'Needs you'));

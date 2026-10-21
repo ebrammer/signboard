@@ -638,7 +638,7 @@ function createAddBoardTabElement() {
     const addBoardButton = document.createElement('button');
     addBoardButton.type = 'button';
     addBoardButton.classList.add('board-tab-label', 'board-tab-add-label');
-    addBoardButton.textContent = '+ Add Board';
+    addBoardButton.textContent = '+';
     addBoardButton.setAttribute('aria-label', 'Add board');
     addBoardButton.title = 'Add board';
     addBoardButton.addEventListener('click', async (event) => {
@@ -876,12 +876,12 @@ function renderBoardTabs() {
         ? getPlannerCurrentBoardRoot() || getStoredActiveBoard()
         : normalizeBoardPath(window.boardRoot || getStoredActiveBoard());
 
+    tabsEl.appendChild(createAddBoardTabElement());
     for (const boardPath of openBoards) {
         tabsEl.appendChild(createBoardTabElement(boardPath, activeBoard));
     }
 
     tabsEl.appendChild(createBoardOverflowTabElement());
-    tabsEl.appendChild(createAddBoardTabElement());
 
     initializeBoardTabsSortable(tabsEl, openBoards.length > 1);
     ensureBoardTabsResizeListener();

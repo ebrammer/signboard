@@ -48,6 +48,60 @@ async function withOverviewApp(run) {
   }
 }
 
+test('Projects combines the attention preview and project grid with a separate full request queue', async () => {
+  await withOverviewApp(async ({ page, boardA, cardPath }) => {
+    const requestPaths = [
+      path.join(boardA, '000-To-do-stock', '000-plan-release-stock.md'),
+      path.join(boardA, '001-Doing-stock', '000-polish-copy-stock.md'),
+      cardPath,
+    ];
+    for (const [index, requestPath] of requestPaths.entries()) {
+      const card = await cardFrontmatter.readCard(requestPath);
+      await cardFrontmatter.writeCard(requestPath, { ...card, frontmatter: {
+        ...card.frontmatter, sb_attention: 'review', sb_request: `Review option ${index + 1}`,
+      } });
+    }
+    await page.locator('#workspaceViewOverview').click();
+    const projectsTab = page.locator('#overviewProjectsTab');
+    const needsTab = page.locator('#overviewNeedsYouTab');
+    await expect(page.locator('.overview-tabs [role=tab]')).toHaveCount(2);
+    await expect(page.locator('#overviewNowTab')).toHaveCount(0);
+    await expect(projectsTab).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#overviewTitle')).toHaveText('Projects');
+    await expect(page.locator('#overviewBody')).toHaveAttribute('aria-labelledby', 'overviewProjectsTab');
+    await expect(page.locator('#overviewBody > section').first()).toHaveClass('overview-needs-preview');
+    await expect(page.locator('.overview-request-preview')).toHaveCount(2);
+    await expect(page.locator('.overview-project')).toHaveCount(2);
+    await expect(page.locator('#overviewRequestCount')).toHaveText('3');
+    await page.locator('#overviewViewAllRequests').click();
+    await expect(needsTab).toBeFocused();
+    await expect(needsTab).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#overviewBody .overview-request')).toHaveCount(3);
+    await expect(page.locator('.overview-project')).toHaveCount(0);
+    await expect(page.locator('#overviewBody')).toHaveAttribute('aria-labelledby', 'overviewNeedsYouTab');
+    await needsTab.press('ArrowRight');
+    await expect(projectsTab).toBeFocused();
+    await expect(page.locator('.overview-request-preview')).toHaveCount(2);
+    await projectsTab.press('ArrowLeft');
+    await expect(needsTab).toBeFocused();
+    await needsTab.press('Home');
+    await expect(projectsTab).toBeFocused();
+    await projectsTab.press('End');
+    await expect(needsTab).toBeFocused();
+    await expect(projectsTab).toHaveAttribute('tabindex', '-1');
+    await expect(needsTab).toHaveAttribute('tabindex', '0');
+    await page.locator('#overviewSearchInput').fill('Review option 3');
+    await expect(page.locator('#overviewBody .overview-request')).toHaveCount(1);
+    await expect(page.locator('#overviewRequestCount')).toHaveText('3');
+    await projectsTab.click();
+    await expect(page.locator('.overview-request-preview')).toHaveCount(1);
+    await expect(page.locator('.overview-project')).toHaveCount(1);
+    await page.locator('#overviewSearchInput').fill('no matching request');
+    await expect(page.locator('.overview-needs-preview')).toHaveCount(0);
+    await expect(page.locator('#overviewBody')).toContainText('No projects or cards match your search.');
+  });
+});
+
 test('Overview preserves custom workflows, searches all projects, edits source cards and refreshes external writes', async ({}, testInfo) => {
   await withOverviewApp(async ({ page, boardA, boardB, cardPath }) => {
     await page.locator('#workspaceViewOverview').click();
@@ -139,7 +193,7 @@ test('Overview shows missing project and no-open-board states', async ({}, testI
   });
 });
 
-test('Now exposes malformed project briefs and keeps readable source cards available', async ({}, testInfo) => {
+test('Projects exposes malformed project briefs and keeps readable source cards available', async ({}, testInfo) => {
   await withOverviewApp(async ({ page, boardB }) => {
     const malformedPath = path.join(boardB, '000-To-do-stock', '001-malformed-stock.md');
     const malformedBytes = '---\ntitle: [unterminated\n---\nReadable legacy fallback fixture.';
@@ -209,7 +263,7 @@ test('a foreign project source conflict preserves the exact draft, disk bytes an
   });
 });
 
-test('project tiles open the chosen Kanban while Show details stays in Now and the header stays compact', async ({}, testInfo) => {
+test('project tiles open the chosen Kanban while Show details stays in Projects and the header stays compact', async ({}, testInfo) => {
   await withOverviewApp(async ({ page, boardA, boardB, cardPath }) => {
     const sourceBytes = await fs.readFile(cardPath);
     // Give the destination a remembered Table view before returning to another project.
@@ -275,7 +329,7 @@ test('project tiles open the chosen Kanban while Show details stays in Now and t
   });
 });
 
-test('a failed same-project Kanban render restores Now with a visible error and supports retry', async ({}, testInfo) => {
+test('a failed same-project Kanban render restores Projects with a visible error and supports retry', async ({}, testInfo) => {
   await withOverviewApp(async ({ page, boardA }) => {
     await page.locator('#workspaceViewTable').click();
     await expect(page.locator('.board-table-view')).toBeVisible();

@@ -80,17 +80,17 @@ components:
     textColor: "{colors.on-surface}"
     typography: "{typography.body-md}"
   board-column:
-    backgroundColor: "{colors.surface}"
+    backgroundColor: "workflow-derived column body tint"
     textColor: "{colors.on-surface}"
     rounded: "{rounded.lg}"
-    padding: 12px
+    padding: 10px
     width: 280px
   board-card:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.on-surface}"
     typography: "{typography.body-sm}"
     rounded: "{rounded.md}"
-    padding: 10px
+    padding: 8px
   button-primary:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.on-primary}"
@@ -161,7 +161,7 @@ components:
     backgroundColor: "{colors.dark-surface}"
     textColor: "{colors.dark-on-surface}"
     rounded: "{rounded.md}"
-    padding: 10px
+    padding: 8px
   dark-button-primary:
     backgroundColor: "{colors.dark-primary}"
     textColor: "{colors.dark-on-primary}"
@@ -182,7 +182,7 @@ components:
 
 Signboard's default theme is a quiet, high-utility workspace for local-first planning. It should feel like a fast desktop tool: calm, crisp, file-native, and direct. The interface favors dense scannable work over decorative presence.
 
-The first impression is a pale canvas with white cards and columns, charcoal text, restrained gray borders, and high-contrast neutral actions. Visual energy comes from interaction states, labels, due indicators, and drag motion, not from large illustrations or broad color fields.
+The first impression is a pale canvas with white cards and subtly darker columns, charcoal text, restrained gray borders, and high-contrast neutral actions. Visual energy comes from interaction states, labels, due indicators, and drag motion, not from large illustrations or broad color fields.
 
 The default theme is light mode. Dark mode is a companion implementation and should preserve the same hierarchy with light gray actions on a charcoal canvas.
 
@@ -205,7 +205,7 @@ Dark mode mirrors the hierarchy with `#171717` as the canvas, `#262626` as the s
 
 ## Typography
 
-Use Inter through the system font stack for nearly all UI. It should stay compact and readable, with regular weight for card titles and body text so the board does not become visually loud.
+Use Inter through the system font stack for nearly all UI. It should stay compact and readable, with bold Kanban card titles for scanning and regular body text.
 
 - **Headlines:** 22px, weight 650, used for app and modal titles.
 - **Section headings:** 16px, weight 650, used in settings panels, archive detail, and helper dialogs.
@@ -219,9 +219,9 @@ Keep letter spacing at `0px` except for small labels and shortcut hints, which m
 
 Signboard uses a desktop-first board layout. The board surface scrolls horizontally for Kanban columns and vertically inside the main workspace. Columns are fixed at 280px wide to keep card scanning predictable.
 
-Spacing follows a compact 4/8/12/16px rhythm. Board and calendar grids use 16px page padding, 8px cell gaps, 10px card gaps, 12px column padding, and 16px card-to-card vertical spacing.
+Spacing follows a compact 4/8/12/16px rhythm. Board and calendar grids use 16px page padding, 8px cell gaps, 10px card gaps, 10px column-body padding, and 16px card-to-card vertical spacing.
 
-Header controls should remain compact and tool-like: icon buttons are 40px minimum, search is pill-shaped, board tabs sit flush against the board edge, and popovers open near their triggering controls.
+Header controls should remain compact and tool-like: icon buttons are 40px minimum, search is pill-shaped, board tabs use large 44px pills with space around their fully rounded edges, and popovers open near their triggering controls.
 
 Planner Calendar, This Week, Day, and Agenda keep the same card language as Kanban, but compress cards into small temporal summaries with board/list context and task progress.
 
@@ -251,9 +251,9 @@ Do not mix sharp rectangular controls into the default theme unless matching nat
 
 Buttons are quiet by default: white surface, slate text, one-pixel border, and 10px radius. Primary buttons use charcoal fill, white text, pill radius, and at least 40px height.
 
-Cards are white surfaces with 10px radius, 10px padding, subtle border, and a low shadow. Card titles are regular 16px text; preview and metadata text is muted. Title and preview text wraps inside the card, including unbroken strings such as URLs, so a card never spills over the column beside it. Label chips are pill-shaped, small, and use board label colors without overwhelming card text.
+Cards are white surfaces with 10px radius, 8px padding, subtle border, and a low shadow. Keep 4px between title and preview and 12px before the left-aligned metadata row; metadata wraps with 4px row and 6px column gaps. Empty action shortcuts trail visible metadata so tags stay at the left. Card titles are bold 16px text; preview and metadata text is muted. Title and preview text wraps inside the card, including unbroken strings such as URLs, so a card never spills over the column beside it. Label chips are pill-shaped, small, and use board label colors without overwhelming card text.
 
-Columns are fixed-width white surfaces with 14px radius, 12px padding, and a faint shadow. Column headers use 14px semibold text with a subtle bottom divider.
+Columns have a separate compact header card above their body, with an 8px gap. Headers use a dark workflow color with white text in both light and dark modes, 10px radius, 6px vertical and 10px horizontal padding, 14px semibold titles, and a transparent, borderless 32px menu button with hover and keyboard-focus feedback. Column bodies are fixed-width surfaces with a subtle tint from the same workflow color with 14px radius, 10px padding, and a faint shadow. Header and body remain one draggable list; empty bodies retain a card drop target. Board tabs use a solid text-colored selected pill with inverse text, and retain their close, overflow, and keyboard controls. Add Board is a 44px circular + button fixed before the board pills, including during reordering and overflow; its accessible label and tooltip remain “Add board”.
 
 Popovers and menus use white surfaces, 8px padding, 8-10px row radii, and hover states made from light border/surface mixing. Menu rows should use icons plus text, with shortcut hints in JetBrains Mono.
 
@@ -273,7 +273,7 @@ Motion should respect `prefers-reduced-motion`: drag tilt, hover lift, animated 
 - Do use the neutral primary accent for active, focused, selected, or highest-priority actions only.
 - Do keep keyboard focus visible without adding persistent editor chrome for pointer users.
 - Do use borders and muted text to create hierarchy before adding stronger shadows.
-- Do keep card titles modest and regular weight so many cards can sit together comfortably.
+- Do keep card titles at 16px with bold weight for quick scanning.
 - Do preserve fixed column width and stable control sizes.
 - Don't introduce broad gradients, decorative background shapes, or saturated page sections.
 - Don't make cards visually heavier than columns or modals.
@@ -281,7 +281,7 @@ Motion should respect `prefers-reduced-motion`: drag tilt, hover lift, animated 
 - Don't hide essential file-first context such as list names, labels, due dates, or source list labels in temporal views.
 - Don't use negative letter spacing or viewport-scaled type.
 
-## Syllabi Now workspace
+## Syllabi Projects workspace
 
 The fork’s default visual system is monochrome: white and light gray in light mode, charcoal and dark gray in dark mode. Overview, coordination forms, default source editors and tooltips share these neutral colors. Avoid decorative green, blue or terracotta accents. Preserve deliberate user-selected board schemes and label colors; danger remains a meaningful red signal. Default progress and tomorrow indicators use neutral text.
 
@@ -292,3 +292,5 @@ Keep the overview header compact, with its modest title and search in a thin top
 Workspace view controls use one shared native-button style: equal target sizes, the same hover surface, `aria-pressed` selected treatment, and the standard keyboard focus ring. Workspace selection and focus use neutral text/surface tokens, independent of legacy board accents. No view receives special primary sizing or emphasis; hovering the toolbar must not change its opacity or position.
 
 The default UI uses the [Tailwind CSS v3.4 Neutral scale](https://github.com/tailwindlabs/tailwindcss/blob/v3.4.17/src/public/colors.js). Named `--color-neutral-*` CSS tokens map to semantic surfaces, text, borders, and accents; renderer palettes use the same hex values for contrast calculations. No Tailwind runtime or CSS reset is required. Missing/invalid saved schemes without custom backgrounds resolve to this default, not a generated accent. Neutral completion and upcoming-date indicators avoid decorative green; explicit card-label colors and deliberately selected custom themes retain their meaning.
+
+Kanban columns use workflow colors: slate for To-do and unrecognized names, blue for Doing, green for completed lists, amber for Waiting/review, and red for Blocked. Completion follows the board’s existing workflow settings. Each column’s menu offers named swatches, a custom color picker, and Use workflow color. Custom colors tint the body and derive a header dark enough for white text at 4.5:1 contrast. Cards retain their board palette and label colors. Overrides are saved in board settings, survive list reordering and renaming, and do not write defaults on board reads.
