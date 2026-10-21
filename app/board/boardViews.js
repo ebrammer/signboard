@@ -11,18 +11,21 @@ const BOARD_VIEW_OPTIONS = Object.freeze([
 ]);
 
 const WORKSPACE_VIEW_IDS = Object.freeze({
+  OVERVIEW: 'overview',
   PLANNER: 'planner',
   KANBAN: BOARD_VIEW_IDS.KANBAN,
   TABLE: BOARD_VIEW_IDS.TABLE,
 });
 
 const WORKSPACE_VIEW_ORDER = Object.freeze([
+  WORKSPACE_VIEW_IDS.OVERVIEW,
   WORKSPACE_VIEW_IDS.PLANNER,
   WORKSPACE_VIEW_IDS.KANBAN,
   WORKSPACE_VIEW_IDS.TABLE,
 ]);
 
 const WORKSPACE_VIEW_OPTIONS = Object.freeze([
+  { id: WORKSPACE_VIEW_IDS.OVERVIEW, label: 'Overview' },
   {
     id: WORKSPACE_VIEW_IDS.PLANNER,
     label: 'Planner',
@@ -88,6 +91,7 @@ function normalizeBoardViewId(viewId) {
 
 function normalizeWorkspaceViewId(viewId) {
   const normalized = String(viewId || '').trim().toLowerCase();
+  if (normalized === WORKSPACE_VIEW_IDS.OVERVIEW) return WORKSPACE_VIEW_IDS.OVERVIEW;
   if (normalized === WORKSPACE_VIEW_IDS.PLANNER) {
     return WORKSPACE_VIEW_IDS.PLANNER;
   }
@@ -149,6 +153,7 @@ function clearWorkspaceTransitionCallback(timerId) {
 }
 
 function getActiveWorkspaceView() {
+  if (typeof isOverviewOpen === 'function' && isOverviewOpen()) return WORKSPACE_VIEW_IDS.OVERVIEW;
   if (typeof isPlannerOpen === 'function' && isPlannerOpen()) {
     return WORKSPACE_VIEW_IDS.PLANNER;
   }
@@ -329,6 +334,13 @@ async function switchWorkspaceView(viewId, options = {}) {
   }
   if (typeof closeBoardViewPopover === 'function') {
     closeBoardViewPopover();
+  }
+
+  if (targetView === WORKSPACE_VIEW_IDS.OVERVIEW) return openOverviewView();
+
+  if (typeof isOverviewOpen === 'function' && isOverviewOpen()) {
+    await closeAllModals({ key: 'Escape' }, { skipRerender: true });
+    closeOverviewView({ restoreFocus: false });
   }
 
   if (targetView === WORKSPACE_VIEW_IDS.PLANNER) {
@@ -1034,7 +1046,7 @@ function syncWorkspaceViewDockState(forcedActiveView = '') {
   }
 
   const hasOpenBoard = Boolean(window.boardRoot);
-  dock.setAttribute('aria-hidden', hasOpenBoard ? 'false' : 'true');
+  dock.setAttribute('aria-hidden', 'false');
 
   const activeView = forcedActiveView
     ? normalizeWorkspaceViewId(forcedActiveView)
@@ -1047,6 +1059,7 @@ function syncWorkspaceViewDockState(forcedActiveView = '') {
     }
 
     const isActive = option.id === activeView;
+    button.disabled = !hasOpenBoard && option.id !== WORKSPACE_VIEW_IDS.OVERVIEW;
     button.classList.toggle('is-active', isActive);
     button.classList.toggle('is-primary', option.id === WORKSPACE_VIEW_IDS.KANBAN);
     button.setAttribute('aria-pressed', String(isActive));

@@ -22,6 +22,7 @@ cat \
   app/board/boardViews.js \
   app/board/tableView.js \
   app/board/plannerView.js \
+  app/board/overviewView.js \
   app/board/archiveBrowser.js \
   app/cards/createCardElement.js \
   app/cards/processAddNewCard.js \

@@ -947,6 +947,7 @@ async function runExternalBoardRefresh() {
 }
 
 async function externalBoardSyncTick() {
+    await refreshOverviewIfDue();
     if (externalBoardSyncInFlight) {
         return;
     }
@@ -1126,6 +1127,10 @@ async function init() {
         });
     }
 
+    if (typeof restorePersistedWorkspaceIfStorageMissing === 'function') {
+        await restorePersistedWorkspaceIfStorageMissing();
+    }
+
     if (window.board && typeof window.board.adoptLegacyBoardRoots === 'function' && typeof getStoredOpenBoards === 'function') {
         try {
             await window.board.adoptLegacyBoardRoots(getStoredOpenBoards());
@@ -1154,6 +1159,7 @@ async function init() {
         initializeBoardPanControls();
         initializeBoardViewControls();
         initializePlannerControls();
+        initializeOverviewControls();
         initializeArchiveBrowserControls();
         initializeBoardSwitcherControls();
     };

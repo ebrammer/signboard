@@ -313,6 +313,7 @@ async function closeAllModals(e, options = {}){
     // skips the usual redraw (including switching to the already-selected tab).
     if (restoredPlannerBoard || (!skipRerender && (shouldRerender || editModalClosed || boardSettingsClosed))) {
         await renderBoard();
+        if (typeof isOverviewOpen === 'function' && isOverviewOpen()) await renderOverviewView();
         if (editModalClosed && typeof isPlannerOpen === 'function' && isPlannerOpen() && typeof renderPlannerView === 'function') {
             await renderPlannerView();
         }

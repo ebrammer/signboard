@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
-  <title>Signboard</title>
+  <title>Syllabi Signboard</title>
   <link rel="stylesheet" href="static/vendor/fdatepicker-3.0.24.min.css">
   <link rel="stylesheet" href="static/styles.css">
   <script defer src="static/vendor/sortable-1.15.2.min.js"></script>
@@ -42,6 +42,17 @@
       <div id="boardTabs" role="tablist" aria-label="Open Boards"></div>
     </div>
   </header>
+
+  <section id="overviewOverlay" class="overview-overlay hidden" aria-hidden="true" aria-labelledby="overviewTitle">
+    <div class="overview-header">
+      <div><h2 id="overviewTitle">Overview</h2><span id="overviewCount" class="overview-count" aria-live="polite"></span></div>
+      <div class="overview-header-controls">
+        <input id="overviewSearchInput" type="search" placeholder="Search all projects" aria-label="Search project, list, title or notes">
+        <button id="overviewCloseButton" type="button" title="Close Overview" aria-label="Close Overview"><i data-feather="x"></i></button>
+      </div>
+    </div>
+    <div id="overviewBody" class="overview-body"></div>
+  </section>
 
   <section id="plannerOverlay" class="planner-overlay hidden" aria-hidden="true" aria-labelledby="plannerTitle">
     <div class="planner-panel">
@@ -114,6 +125,9 @@
   </div>
 
   <nav id="workspaceViewDock" class="workspace-view-dock" aria-label="Workspace views">
+    <button id="workspaceViewOverview" class="workspace-view-dock-button" type="button" data-workspace-view="overview" title="Show Overview" aria-label="Show Overview">
+      <i data-feather="grid"></i><span>Overview</span>
+    </button>
     <button id="workspaceViewPlanner" class="workspace-view-dock-button" type="button" data-workspace-view="planner" title="Open Planner" aria-label="Open Planner">
       <i data-feather="calendar"></i>
       <span>Planner</span>

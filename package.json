@@ -1,12 +1,12 @@
 {
   "name": "signboard",
-  "productName": "Signboard",
-  "version": "1.7.4",
+  "productName": "Syllabi Signboard",
+  "version": "1.7.4-syllabi.1",
   "description": "A fast, local-first Kanban board for Markdown files.",
-  "homepage": "https://github.com/cdevroe/signboard",
+  "homepage": "https://github.com/ebrammer/signboard",
   "repository": {
     "type": "git",
-    "url": "https://github.com/cdevroe/signboard.git"
+    "url": "https://github.com/ebrammer/signboard.git"
   },
   "license": "MIT",
   "author": "Colin Devroe <colin@cdevroe.com> (https://cdevroe.com)",
@@ -73,11 +73,11 @@
     "test:playwright": "node scripts/run-playwright.js",
     "migrate:legacy-cards": "node scripts/migrate-legacy-cards.js",
     "dist": "npm run dist:mac",
-    "dist:mac": "npm run build:js && electron-builder --config electron-builder.json --mac --universal --publish never && npm run test:packaged-app-launch -- --app dist/mac-universal/Signboard.app",
-    "dist:mac:arm64": "npm run build:js && electron-builder --config electron-builder.json --mac --arm64 --publish never && npm run test:packaged-app-launch -- --app dist/mac-arm64/Signboard.app",
-    "dist:mac:arm64:no-notarize": "CSC_IDENTITY_AUTO_DISCOVERY=false SIGNBOARD_SKIP_NOTARIZATION=1 npm run build:js && CSC_IDENTITY_AUTO_DISCOVERY=false SIGNBOARD_SKIP_NOTARIZATION=1 electron-builder --config electron-builder.json --mac --arm64 --publish never && npm run test:packaged-app-launch -- --app dist/mac-arm64/Signboard.app",
-    "dist:mac:x64": "npm run build:js && electron-builder --config electron-builder.json --mac --x64 --publish never && npm run test:packaged-app-launch -- --app dist/mac/Signboard.app",
-    "dist:mac:universal": "npm run build:js && electron-builder --config electron-builder.json --mac --universal --publish never && npm run test:packaged-app-launch -- --app dist/mac-universal/Signboard.app",
+    "dist:mac": "npm run build:js && electron-builder --config electron-builder.json --mac --universal --publish never && npm run test:packaged-app-launch -- --app \"dist/mac-universal/Syllabi Signboard.app\"",
+    "dist:mac:arm64": "npm run build:js && electron-builder --config electron-builder.json --mac --arm64 --publish never && npm run test:packaged-app-launch -- --app \"dist/mac-arm64/Syllabi Signboard.app\"",
+    "dist:mac:arm64:no-notarize": "CSC_IDENTITY_AUTO_DISCOVERY=false SIGNBOARD_SKIP_NOTARIZATION=1 npm run build:js && CSC_IDENTITY_AUTO_DISCOVERY=false SIGNBOARD_SKIP_NOTARIZATION=1 electron-builder --config electron-builder.json --mac --arm64 --publish never && npm run test:packaged-app-launch -- --app \"dist/mac-arm64/Syllabi Signboard.app\"",
+    "dist:mac:x64": "npm run build:js && electron-builder --config electron-builder.json --mac --x64 --publish never && npm run test:packaged-app-launch -- --app \"dist/mac/Syllabi Signboard.app\"",
+    "dist:mac:universal": "npm run build:js && electron-builder --config electron-builder.json --mac --universal --publish never && npm run test:packaged-app-launch -- --app \"dist/mac-universal/Syllabi Signboard.app\"",
     "dist:mac:all": "npm run dist:mac:arm64 && npm run dist:mac:x64 && npm run dist:mac:universal",
     "dist:macarm64": "npm run dist:mac:arm64",
     "dist:macx64": "npm run dist:mac:x64",
@@ -108,7 +108,10 @@
     "test:board-theme-palettes": "node scripts/test-board-theme-palettes.js",
     "build:stamp": "npm run build:js && node scripts/stamp-build.js",
     "build:check": "node scripts/stamp-build.js --check",
-    "test:build-info": "node scripts/test-build-info.js"
+    "test:build-info": "node scripts/test-build-info.js",
+    "test:overview": "node scripts/test-overview.js",
+    "test:safe-card-updates": "node scripts/test-safe-card-updates.js",
+    "test:fork-identity": "node scripts/test-fork-identity.js"
   },
   "devDependencies": {
     "@fiahfy/icns": "^0.0.7",
@@ -120,11 +123,10 @@
     "sharp": "^0.34.5"
   },
   "overrides": {
-    "@xmldom/xmldom": "0.8.12",
-    "ajv": "6.14.0",
+    "@xmldom/xmldom": "0.8.15",
     "lodash": "4.18.1",
     "picomatch": "4.0.4",
-    "tar": "7.5.13",
+    "tar": "7.5.22",
     "minimatch@3": "3.1.4",
     "minimatch@5": "5.1.8",
     "minimatch@9": "9.0.7",

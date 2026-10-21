@@ -29,7 +29,7 @@ If you are an agent or tool that looks for `AGENTS.md`, use `CODEX.md` as the ca
 - Keep successful card drag/drop on the in-place returned-path update path; reserve full-board rerendering for reorder recovery so slower disks do not reread every card after each drop.
 - Keep native Arch/Omarchy `.pacman` packages in the standard Linux release matrix alongside AppImage and deb artifacts.
 - Keep electron-builder's `signboard://` protocol declaration aligned in `package.json` and `electron-builder.json` so packaged Linux desktop entries register the URL scheme.
-- Preserve the legacy `com.electron.signboard` packaged application ID so signed updates remain compatible with Signboard 1.6.0 and earlier installs; changing the application ID requires an explicit migration plan and update-path regression.
+- This fork uses `com.syllabi.signboard` and the distinct Syllabi Signboard profile. Follow `FORK.md` for the explicit migration/rollback plan; never enable upstream binary updates for the fork.
 - Omarchy theme following is an opt-in app setting shown only when the canonical active theme is detected; keep `lib/omarchyTheme.js`, main-process watching, preload events, `app/ui/theme.js`, app settings, Planner board-palette inheritance, Light/Dark/Auto opt-out behavior, and tests aligned. Non-default board color schemes must remain deliberate overrides.
 - MCP allowed roots include both explicit MCP roots and desktop trusted board roots; keep root loading, `get_config`, `signboard_list_boards`, and board-name resolution tests aligned.
 - CLI and MCP board discovery/creation should stay aligned: `signboard boards list` and `signboard_list_boards` report the same known-board metadata shape where applicable, while `signboard boards create` and `signboard_create_board` scaffold the same default lists and starter card.
@@ -83,3 +83,7 @@ When in doubt, follow [CODEX.md](./CODEX.md).
 - Skip unchanged card-editor saves against `activeEditorDiskState`; initialization/theme callbacks must not rewrite cached content over an external edit. Keep the external-editor-refresh regression aligned.
 
 - Release builds share one stamp in `config/build-info.json`: run `npm run build:stamp -- --channel release` once after source changes, commit it, and reuse it on every builder. The packaging hook rejects stale/missing stamps. About and `signboard --version [--json]` report the build and source fingerprint; updater versions remain unchanged. See `docs/build-identity.md`.
+
+## Syllabi fork
+
+Read `FORK.md` for fork identity, compatible board adoption, and update policy. Keep existing Markdown board formats and custom workflows intact. Never upload local test evidence or personal board data.

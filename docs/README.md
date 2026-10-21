@@ -2,6 +2,8 @@
 
 Signboard stores boards as folders and cards as Markdown files. These guides describe the 1.7.x app and its automation interfaces.
 
+For this fork’s separate desktop identity and existing-board adoption, see [Syllabi Signboard](../FORK.md).
+
 ## Choose a guide
 
 | What you want to do | Start here |

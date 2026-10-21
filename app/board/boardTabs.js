@@ -92,6 +92,34 @@ function sanitizeOpenBoards(openBoards) {
     return uniqueBoards;
 }
 
+function hasStoredWorkspaceState() {
+    return [OPEN_BOARDS_STORAGE_KEY, ACTIVE_BOARD_STORAGE_KEY, 'boardPath']
+        .some((key) => localStorage.getItem(key) !== null);
+}
+
+async function restorePersistedWorkspaceIfStorageMissing() {
+    if (hasStoredWorkspaceState() || !window.board ||
+        typeof window.board.getPersistedOpenBoardsState !== 'function') return false;
+
+    try {
+        const state = await window.board.getPersistedOpenBoardsState();
+        // A renderer action that happened during the read takes precedence too.
+        if (hasStoredWorkspaceState() || !state || state.ok !== true) return false;
+        const openBoards = sanitizeOpenBoards(state.openBoardRoots);
+        if (openBoards.length === 0) return false;
+        const requestedActiveBoard = normalizeBoardPath(state.activeBoardRoot);
+        const activeBoard = openBoards.includes(requestedActiveBoard) ? requestedActiveBoard : openBoards[0];
+        localStorage.setItem(OPEN_BOARDS_STORAGE_KEY, JSON.stringify(openBoards));
+        localStorage.setItem(ACTIVE_BOARD_STORAGE_KEY, activeBoard);
+        localStorage.setItem('boardPath', activeBoard);
+        syncOpenBoardsStateSnapshot();
+        return true;
+    } catch (error) {
+        console.warn('Unable to recover the saved workspace.', error);
+        return false;
+    }
+}
+
 function getStoredOpenBoards() {
     let openBoards = [];
 
@@ -361,7 +389,7 @@ function restoreBoardTabs() {
     const storedActiveBoard = getStoredActiveBoard();
     let openBoards = getStoredOpenBoards();
 
-    if (openBoards.length === 0 && storedActiveBoard) {
+    if (openBoards.length === 0 && storedActiveBoard && localStorage.getItem(OPEN_BOARDS_STORAGE_KEY) === null) {
         openBoards = [storedActiveBoard];
         setStoredOpenBoards(openBoards);
     }

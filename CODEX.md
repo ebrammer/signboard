@@ -122,3 +122,9 @@ Start here before opening source files.
 - Skip unchanged card-editor saves against `activeEditorDiskState`; initialization/theme callbacks must not rewrite cached content over an external edit. Keep the external-editor-refresh regression aligned.
 
 - Release builds share one stamp in `config/build-info.json`: run `npm run build:stamp -- --channel release` once after source changes, commit it, and reuse it on every builder. The packaging hook rejects stale/missing stamps. About and `signboard --version [--json]` report the build and source fingerprint; updater versions remain unchanged. See `docs/build-identity.md`.
+
+## Syllabi fork
+
+See `FORK.md` for the separate application identity, profile adoption and rollback, compatible board format, and disabled upstream binary updater. `lib/forkIdentity.js` defines the application/profile name and update policy.
+
+Overview lives in `app/board/overviewView.js`, aggregates existing batched snapshots from open boards, and reuses the Planner source-board editor context. `lib/cardRevision.js` and `lib/fileTransaction.js` supply content revisions and cross-process write serialization. Keep Overview, safe-write, and editor-conflict regressions aligned when modifying these paths.

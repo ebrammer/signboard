@@ -955,7 +955,10 @@ function syncPlannerBoardTheme() {
   const context = getPlannerState().cardContext;
   overlay.dataset.boardColorScheme = context ? context.colorScheme : getBoardColorScheme();
   for (const property of Object.values(PLANNER_CARD_THEME_PROPERTIES)) overlay.style.removeProperty(property);
-  if (!context) return;
+  if (!context) {
+    if (typeof syncOverviewBoardTheme === 'function') syncOverviewBoardTheme();
+    return;
+  }
   const mode = getBoardThemeMode();
   let palette = context.palettes[mode];
   if ((!context.colorScheme || context.colorScheme === 'default') &&
@@ -965,6 +968,7 @@ function syncPlannerBoardTheme() {
   for (const [key, property] of Object.entries(PLANNER_CARD_THEME_PROPERTIES)) {
     overlay.style.setProperty(property, palette[key]);
   }
+  if (typeof syncOverviewBoardTheme === 'function') syncOverviewBoardTheme();
 }
 
 async function restorePlannerCardContext() {
@@ -992,6 +996,7 @@ async function openPlannerCard(cardEntry) {
   if (!cardEntry || !cardEntry.cardPath) return;
   const state = getPlannerState();
   if (state.cardOpenPromise) return state.cardOpenPromise;
+  let createdCardContext = false;
   state.cardOpenPromise = (async () => {
     await closeAllModals({ key: 'Escape' }, { skipPlannerCardOpenWait: true });
     const cardBoardRoot = normalizeBoardPath(cardEntry.boardRoot);
@@ -1007,6 +1012,7 @@ async function openPlannerCard(cardEntry) {
         colorScheme: getBoardColorScheme(),
         palettes: getBoardThemePalettes(),
       };
+      createdCardContext = true;
       syncPlannerBoardTheme();
       window.boardRoot = authorizedBoard;
       window.__boardLabelState = undefined;
@@ -1015,8 +1021,12 @@ async function openPlannerCard(cardEntry) {
     }
     await toggleEditCardModal(cardEntry.cardPath);
   })().catch(async (error) => {
-    await restorePlannerCardContext();
-    await renderBoard();
+    // A rejected editor save leaves its existing source context and draft open.
+    // Only unwind context established by this open attempt.
+    if (createdCardContext) {
+      await restorePlannerCardContext();
+      await renderBoard();
+    }
     throw error;
   }).finally(() => { state.cardOpenPromise = null; });
   return state.cardOpenPromise;
@@ -2033,6 +2043,7 @@ async function openPlannerView(options = {}) {
     await closeAllModals({ key: 'Escape' }, { skipRerender: true });
   }
 
+  if (typeof isOverviewOpen === 'function' && isOverviewOpen()) closeOverviewView({ restoreFocus: false });
   const requestedView = options && options.viewId ? options.viewId : '';
   if (requestedView) {
     state.activeView = normalizePlannerViewId(requestedView);

@@ -1099,6 +1099,7 @@ async function runForTransport(transportMode, fixture) {
         listName: fixture.leadsList,
         cardFile: fixture.templateCardFile,
         start: '2026-03-17',
+        expectedRevision: readCardOutput.card.revision,
         body: 'Customer details go here.\\n- [x ] (start: 2026-03-18) Initial outreach\\n- [x ] (start: 2026-03-19) (due: 2026-03-20) Send proposal\\n- [ X] Confirm timeline\\n',
       },
     },

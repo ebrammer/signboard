@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('board', {
   authorizeBoardSelection: async (selectionToken) => invokeBoard('authorizeBoardSelection', selectionToken),
   adoptLegacyBoardRoots: async (boardRoots) => invokeBoard('adoptLegacyBoardRoots', boardRoots),
   setActiveBoardRoot: async (boardRoot) => invokeBoard('setActiveBoardRoot', boardRoot),
+  getPersistedOpenBoardsState: async () => invokeBoard('getPersistedOpenBoardsState'),
   syncOpenBoardsState: async (state) => invokeBoard('syncOpenBoardsState', state),
   clearActiveBoardRoot: async () => invokeBoard('clearActiveBoardRoot'),
   listLists: async (root) => invokeBoard('listLists', root),
@@ -79,9 +80,26 @@ contextBridge.exposeInMainWorld('board', {
   readCard: async (filePath) => invokeBoard('readCard', filePath),
   listArchiveEntries: async () => invokeBoard('listArchiveEntries'),
   readArchiveEntry: async (entryPath) => invokeBoard('readArchiveEntry', entryPath),
-  writeCard: async (filePath, card) => invokeBoard('writeCard', filePath, card),
-  updateFrontmatter: async (filePath, partialFrontmatter) =>
-    invokeBoard('updateFrontmatter', filePath, partialFrontmatter),
+  writeCard: async (filePath, card) => {
+    const result = await invokeBoard('writeCard', filePath, card);
+    if (result && result.ok === false) {
+      const error = new Error(result.error || 'Unable to save card.');
+      error.code = result.details && result.details.code;
+      error.details = result.details;
+      throw error;
+    }
+    return result;
+  },
+  updateFrontmatter: async (filePath, partialFrontmatter, expectedRevision) => {
+    const result = await invokeBoard('updateFrontmatter', filePath, partialFrontmatter, expectedRevision);
+    if (result && result.ok === false) {
+      const error = new Error(result.error);
+      error.code = result.details && result.details.code;
+      error.details = result.details;
+      throw error;
+    }
+    return result;
+  },
   normalizeFrontmatter: async (frontmatter) => invokeBoard('normalizeFrontmatter', frontmatter),
   readBoardSettings: async (boardRoot) => invokeBoard('readBoardSettings', boardRoot),
   updateBoardLabels: async (boardRoot, labels) => invokeBoard('updateBoardLabels', boardRoot, labels),

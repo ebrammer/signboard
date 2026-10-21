@@ -2,6 +2,10 @@
 
 This guide covers the Signboard 1.7.x command-line interface. For structured agent tools, see [MCP Server](../MCP_README.md); for the underlying files and backups, see [File format and backups](./file-format.md). The interactive TUI is planned for 2.0.0.
 
+## Syllabi fork compatibility
+
+The fork keeps the existing CLI and Markdown formats. Its desktop app is named **Syllabi Signboard** and uses a separate settings profile; use **Help > Copy MCP Config** from the fork for its correct executable and profile paths. See [fork adoption and rollback](../FORK.md). CLI read-modify-write operations participate in fork board locking; agents needing revision-conditional replacements should use the MCP `expectedRevision` interface.
+
 ## Table of Contents
 
 - [How to Run It](#how-to-run-it)

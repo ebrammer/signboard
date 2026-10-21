@@ -543,6 +543,7 @@ async function closeCardEditorForGlobalShortcutIfNeeded(event) {
 }
 
 function closePlannerBeforeBoardCreationShortcut() {
+    if (typeof isOverviewOpen === 'function' && isOverviewOpen()) closeOverviewView({ restoreFocus: false });
     if (typeof isPlannerOpen === 'function' && isPlannerOpen() && typeof closePlannerView === 'function') {
         closePlannerView();
     }
@@ -936,6 +937,10 @@ window.addEventListener('keydown', async (e) => {
             const hadBlockingModal = isAnyShortcutBlockingModalOpen();
             hideShortcutHelpModal();
             await closeAllModals(e);
+            if (!hadBlockingModal && typeof isOverviewOpen === 'function' && isOverviewOpen()) {
+                e.preventDefault();
+                closeOverviewView();
+            }
             if (!hadBlockingModal && typeof isPlannerOpen === 'function' && isPlannerOpen() && typeof closePlannerView === 'function') {
                 e.preventDefault();
                 closePlannerView();
@@ -1023,7 +1028,8 @@ window.addEventListener('keydown', async (e) => {
             return;
         }
 
-        if (typeof isPlannerOpen === 'function' && isPlannerOpen()) {
+        if ((typeof isPlannerOpen === 'function' && isPlannerOpen()) ||
+            (typeof isOverviewOpen === 'function' && isOverviewOpen())) {
             if (
                 typeof handlePlannerViewShortcut === 'function' &&
                 handlePlannerViewShortcut(e, { ignoreEditableTarget: closedCardEditorForShortcut })
@@ -1036,7 +1042,10 @@ window.addEventListener('keydown', async (e) => {
             }
 
             if (isBoardSearchShortcut(e) && (closedCardEditorForShortcut || !isEditableShortcutTarget(e.target))) {
-                if (typeof focusPlannerSearchInput === 'function' && focusPlannerSearchInput()) {
+                const overviewSearch = typeof isOverviewOpen === 'function' && isOverviewOpen()
+                    ? document.getElementById('overviewSearchInput') : null;
+                if (overviewSearch) { overviewSearch.focus(); overviewSearch.select(); }
+                if (overviewSearch || (typeof focusPlannerSearchInput === 'function' && focusPlannerSearchInput())) {
                     e.preventDefault();
                     hideShortcutHelpModal();
                     if (typeof closeBoardSwitcher === 'function') {

@@ -21,7 +21,7 @@ function readAppArgument(argv) {
 
 function resolveExecutable(appPath) {
   if (process.platform === 'darwin') {
-    return path.join(appPath, 'Contents', 'MacOS', 'Signboard');
+    return path.join(appPath, 'Contents', 'MacOS', packageJson.productName || 'Signboard');
   }
   return appPath;
 }
@@ -79,6 +79,38 @@ async function checkHeadlessEntrypoints(executablePath, tempRoot) {
   });
 }
 
+function createRendererFixture(tempRoot, userDataPath) {
+  const boards = [
+    { name: 'Packaged Alpha', list: '000-Inbox-stock', title: 'Packaged Alpha fixture card' },
+    { name: 'Packaged Beta', list: '000-Review-stock', title: 'Packaged Beta fixture card' },
+  ].map((board, index) => {
+    const root = path.join(tempRoot, board.name);
+    const cardPath = path.join(root, board.list, `000-fixture-${index}.md`);
+    fs.mkdirSync(path.dirname(cardPath), { recursive: true });
+    const content = `---\ntitle: ${board.title}\n---\nIsolated packaged startup fixture ${index}.\n`;
+    fs.writeFileSync(cardPath, content, 'utf8');
+    return { ...board, root, cardPath, content };
+  });
+  fs.writeFileSync(path.join(userDataPath, 'trusted-board-roots.json'), JSON.stringify(boards.map(board => board.root)));
+  // Deliberately seed the portable desktop snapshot without Chromium localStorage.
+  // This reproduces restoring a copied profile from a different file origin.
+  fs.writeFileSync(path.join(userDataPath, 'open-boards.json'), JSON.stringify({
+    openBoardRoots: boards.map(board => board.root), activeBoardRoot: boards[0].root,
+  }));
+  return { boards };
+}
+
+function assertRendererFixture(marker, fixture) {
+  assert.equal(marker.rendererLoaded, true, 'Packaged preload bridges must load.');
+  assert.equal(marker.rendererInitialized, true, 'Packaged renderer must finish initialization and restore the fixture board.');
+  assert.equal(marker.fixtureBoardVisible, true, 'Restored fixture board/card must be visible.');
+  assert.equal(marker.overviewLoaded, true, 'Overview must open through its initialized UI control.');
+  assert.equal(marker.restoredBoardRoot, fixture.boards[0].root);
+  assert.deepEqual(marker.overviewCardTitles.slice().sort(), fixture.boards.map(board => board.title).sort());
+  assert.equal(marker.overviewProjects, fixture.boards.length);
+  assert.equal(marker.overviewCards, fixture.boards.length);
+}
+
 async function run() {
   const appPath = readAppArgument(process.argv.slice(2));
   if (!appPath) {
@@ -94,6 +126,7 @@ async function run() {
   const userDataPath = path.join(tempRoot, 'user-data');
   const markerPath = path.join(userDataPath, 'packaged-smoke-test.json');
   fs.mkdirSync(userDataPath, { recursive: true });
+  const fixture = createRendererFixture(tempRoot, userDataPath);
 
   let stdout = '';
   let stderr = '';
@@ -106,6 +139,8 @@ async function run() {
         env: {
           ...process.env,
           SIGNBOARD_USER_DATA_DIR: userDataPath,
+          SIGNBOARD_PACKAGED_SMOKE_FIXTURE: JSON.stringify(fixture),
+          SIGNBOARD_TEST_DISABLE_FAVICON_FETCH: '1',
         },
         stdio: ['ignore', 'pipe', 'pipe'],
       });
@@ -142,8 +177,12 @@ async function run() {
     if (marker.version !== packageJson.version) {
       throw new Error(`Packaged version mismatch. Expected ${packageJson.version}, found ${marker.version || '<missing>'}.`);
     }
-    if (marker.isPackaged !== true || marker.rendererLoaded !== true) {
+    if (marker.isPackaged !== true) {
       throw new Error(`Packaged renderer did not report ready: ${JSON.stringify(marker)}`);
+    }
+    assertRendererFixture(marker, fixture);
+    for (const board of fixture.boards) {
+      assert.equal(fs.readFileSync(board.cardPath, 'utf8'), board.content, 'Startup/Overview must not rewrite fixture cards.');
     }
     assert.deepEqual(marker.buildInfo, expectedBuild, 'Packaged desktop must match the shared build identity.');
 
@@ -164,7 +203,9 @@ async function run() {
   }
 }
 
-run().catch((error) => {
+if (require.main === module) run().catch((error) => {
   console.error(`Packaged application launch test failed: ${error.message}`);
   process.exit(1);
 });
+
+module.exports = { createRendererFixture, assertRendererFixture };

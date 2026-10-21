@@ -190,6 +190,7 @@ let editorSaveInFlight = Promise.resolve();
 let cardEditorListMoveFeedbackTimer = null;
 let activeCardEditorInstance = null;
 let activeEditorDiskState = null;
+let activeEditorSaveError = null;
 let editorSaveOperationInFlight = false;
 let isApplyingExternalEditorRefresh = false;
 let cardEditorDropDepth = 0;
@@ -235,6 +236,8 @@ function clearActiveCardEditorState() {
     }
     activeCardEditorInstance = null;
     activeEditorDiskState = null;
+    activeEditorSaveError = null;
+    document.getElementById('cardEditorSaveConflict')?.remove();
     editorSaveOperationInFlight = false;
     isApplyingExternalEditorRefresh = false;
     cardEditorDropDepth = 0;
@@ -260,6 +263,7 @@ function createEditorDiskState(cardPath, card) {
         : {};
 
     return {
+        revision: card && card.revision || '',
         cardPath: String(cardPath || ''),
         frontmatterJson: JSON.stringify(frontmatter),
         title: String(frontmatter.title || '').trim(),
@@ -268,7 +272,105 @@ function createEditorDiskState(cardPath, card) {
 }
 
 function setActiveEditorDiskState(cardPath, card) {
+    // Metadata-only actions without a disk revision must not bless cached notes.
+    if (!card.revision && activeEditorDiskState && activeEditorDiskState.cardPath === cardPath) {
+        activeEditorDiskState.frontmatterJson = JSON.stringify(card.frontmatter || {});
+        activeEditorDiskState.title = String(card.frontmatter && card.frontmatter.title || '').trim();
+        return;
+    }
     activeEditorDiskState = createEditorDiskState(cardPath, card);
+}
+
+function showEditorSaveConflict(error) {
+    activeEditorSaveError = error;
+    let notice = document.getElementById('cardEditorSaveConflict');
+    if (!notice) {
+        notice = document.createElement('div');
+        notice.id = 'cardEditorSaveConflict';
+        notice.setAttribute('role', 'alert');
+        const editor = document.getElementById('cardEditorOverType');
+        editor.parentNode.insertBefore(notice, editor);
+    }
+    notice.replaceChildren();
+    const message = document.createElement('p');
+    message.textContent = /Card changed since|expectedRevision/.test(String(error.message || ''))
+        ? 'Your draft is still here. The saved card changed, so saving paused. Review the saved version and merge its changes into your draft.'
+        : `Your draft is still here. Saving paused: ${error.message || 'Unable to save the card.'}`;
+    notice.appendChild(message);
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.textContent = 'Copy draft';
+    copy.onclick = () => window.electronAPI.copyTextToClipboard(`${getEditorTitleValue()}\n\n${getEditorBodyValue()}`);
+    notice.appendChild(copy);
+    const review = document.createElement('button');
+    review.type = 'button';
+    review.textContent = 'Review saved version';
+    review.onclick = async () => {
+        const cardPath = getActiveEditorCardPath();
+        try {
+            const latest = await window.board.readCard(cardPath);
+            let saved = notice.querySelector('textarea');
+            if (!saved) {
+                saved = document.createElement('textarea');
+                saved.readOnly = true;
+                saved.setAttribute('aria-label', 'Latest saved card. Merge these changes into your draft.');
+                notice.appendChild(saved);
+            }
+            saved.value = `${JSON.stringify(latest.frontmatter, null, 2)}\n\n${latest.body}`;
+            let merge = notice.querySelector('[data-save-merged-draft]');
+            if (!merge) {
+                merge = document.createElement('button');
+                merge.type = 'button';
+                merge.dataset.saveMergedDraft = 'true';
+                merge.textContent = 'Save merged draft';
+                notice.appendChild(merge);
+            }
+            merge.onclick = async () => {
+                if (getActiveEditorCardPath() !== cardPath) return;
+                // Preserve latest unknown metadata; explicit draft fields win only
+                // after the user has reviewed this exact saved revision.
+                const editingState = activeEditorDiskState;
+                const base = JSON.parse(editingState.frontmatterJson || '{}');
+                const draft = { ...getEditorFrontmatter(), title: getEditorTitleValue() };
+                const merged = { ...latest.frontmatter };
+                for (const key of new Set([...Object.keys(base), ...Object.keys(draft)])) {
+                    if (JSON.stringify(base[key]) !== JSON.stringify(draft[key])) {
+                        if (draft[key] === undefined) delete merged[key];
+                        else merged[key] = draft[key];
+                    }
+                }
+                setEditorFrontmatter(merged);
+                document.getElementById('cardEditorTitle').textContent = merged.title || '';
+                await renderActiveEditorMetadata(merged, latest.timestamps);
+                if (!isCardEditorActive() || getActiveEditorCardPath() !== cardPath || activeEditorDiskState !== editingState) return;
+                activeEditorDiskState.revision = latest.revision;
+                activeEditorSaveError = null;
+                await enqueueEditorSave(getEditorBodyValue());
+            };
+        } catch (failure) {
+            message.textContent = `Your draft is still here. Unable to read the saved card: ${failure.message}`;
+        }
+    };
+    notice.appendChild(review);
+    const discard = document.createElement('button');
+    discard.type = 'button';
+    discard.textContent = 'Discard draft and close';
+    discard.onclick = async () => {
+        clearQueuedEditorSave();
+        activeEditorSaveError = null;
+        await closeAllModals(createCloseAllModalsRequest());
+    };
+    notice.appendChild(discard);
+    if (typeof announceSignboardStatus === 'function') announceSignboardStatus(message.textContent);
+}
+
+async function refreshEditorRevisionAfterMetadata(cardPath) {
+    const disk = await window.board.readCard(cardPath);
+    if (getActiveEditorCardPath() === cardPath && disk.body === getEditorBodyValue() &&
+        JSON.stringify(disk.frontmatter) === JSON.stringify(getEditorFrontmatter()) &&
+        String(disk.frontmatter.title || '').trim() === getEditorTitleValue()) {
+        setActiveEditorDiskState(cardPath, disk);
+    }
 }
 
 function isActiveEditorUnchangedFromDisk() {
@@ -695,6 +797,7 @@ async function openCardEditorLinkedObject(linkedObject) {
 }
 
 async function removeCardEditorLinkedObject(linkedObject) {
+    await flushEditorSaveIfNeeded();
     const cardPath = getActiveEditorCardPath();
     if (!cardPath || !window.board || typeof window.board.updateFrontmatter !== 'function') {
         return;
@@ -720,13 +823,14 @@ async function removeCardEditorLinkedObject(linkedObject) {
         const normalizedFrontmatter = await window.board.updateFrontmatter(cardPath, {
             linked_objects: nextLinkedObjects.length > 0 ? nextLinkedObjects : undefined,
             related: nextRelated.length > 0 ? nextRelated : undefined,
-        });
+        }, activeEditorDiskState && activeEditorDiskState.revision);
         setEditorFrontmatter(normalizedFrontmatter);
         await renderActiveEditorMetadata(normalizedFrontmatter);
         setActiveEditorDiskState(cardPath, {
             frontmatter: normalizedFrontmatter,
             body: getEditorBodyValue(),
         });
+        await refreshEditorRevisionAfterMetadata(cardPath);
         if (typeof announceSignboardStatus === 'function') {
             announceSignboardStatus('Removed linked object.');
         }
@@ -739,6 +843,7 @@ async function removeCardEditorLinkedObject(linkedObject) {
 }
 
 async function recreateLinkedObsidianNoteForActiveCard(linkedObject) {
+    await flushEditorSaveIfNeeded();
     const cardPath = getActiveEditorCardPath();
     if (!cardPath || !window.board || typeof window.board.recreateLinkedObsidianNote !== 'function') {
         return;
@@ -763,6 +868,7 @@ async function recreateLinkedObsidianNoteForActiveCard(linkedObject) {
                 frontmatter: result.frontmatter,
                 body: getEditorBodyValue(),
             });
+        await refreshEditorRevisionAfterMetadata(cardPath);
         } else {
             await refreshEditorAfterExternalFrontmatterChange(cardPath);
         }
@@ -830,6 +936,7 @@ async function relinkLinkedObsidianNoteForActiveCard(linkedObject) {
                 frontmatter: result.frontmatter,
                 body: getEditorBodyValue(),
             });
+        await refreshEditorRevisionAfterMetadata(cardPath);
         } else {
             await refreshEditorAfterExternalFrontmatterChange(cardPath);
         }
@@ -1062,7 +1169,7 @@ async function renderActiveEditorMetadata(frontmatter = {}, timestamps) {
 }
 
 async function refreshActiveCardEditorFromDiskIfClean() {
-    if (!isActiveEditorUnchangedFromDisk() || !window.board || typeof window.board.readCard !== 'function') {
+    if (activeEditorSaveError || !isActiveEditorUnchangedFromDisk() || !window.board || typeof window.board.readCard !== 'function') {
         return false;
     }
 
@@ -1084,6 +1191,7 @@ async function refreshActiveCardEditorFromDiskIfClean() {
         nextState.frontmatterJson === activeEditorDiskState.frontmatterJson &&
         nextState.body === activeEditorDiskState.body
     ) {
+        activeEditorDiskState.revision = nextState.revision;
         return false;
     }
 
@@ -1131,6 +1239,7 @@ function enqueueEditorSave(bodyValue) {
         .then(() => saveEditorCard(bodyToSave))
         .catch((error) => {
             console.error('Failed to save card.', error);
+            showEditorSaveConflict(error);
         });
 
     return editorSaveInFlight;
@@ -1165,6 +1274,7 @@ async function flushEditorSaveIfNeeded() {
     }
 
     await editorSaveInFlight;
+    if (activeEditorSaveError) throw activeEditorSaveError;
 }
 
 async function saveEditorCard(bodyValue) {
@@ -1172,6 +1282,7 @@ async function saveEditorCard(bodyValue) {
         return;
     }
 
+    if (activeEditorSaveError) return;
     const cardEditorTitle = document.getElementById('cardEditorTitle');
     const cardPath = getActiveEditorCardPath();
     if (!cardPath) {
@@ -1199,16 +1310,16 @@ async function saveEditorCard(bodyValue) {
 
         setEditorFrontmatter(normalizedFrontmatter);
 
-        await window.board.writeCard(cardPath, {
+        const savedResult = await window.board.writeCard(cardPath, {
             frontmatter: normalizedFrontmatter,
             body: normalizedBody,
+            expectedRevision: activeEditorDiskState && activeEditorDiskState.revision,
         });
         updateCardEditorUpdatedTimestamp();
 
-        setActiveEditorDiskState(cardPath, {
-            frontmatter: normalizedFrontmatter,
-            body: normalizedBody,
-        });
+        setActiveEditorDiskState(cardPath, savedResult.card);
+        activeEditorSaveError = null;
+        document.getElementById('cardEditorSaveConflict')?.remove();
     } finally {
         editorSaveOperationInFlight = false;
     }
@@ -2510,6 +2621,8 @@ async function toggleEditCardModal(cardPath, options = {}) {
     const cardEditorSetDatesLink = document.getElementById('cardEditorSetDatesLink');
     const cardEditorSetLabelsLink = document.getElementById('cardEditorSetLabelsLink');
 
+    activeEditorSaveError = null;
+    document.getElementById('cardEditorSaveConflict')?.remove();
     setEditorFrontmatter(card.frontmatter);
     setActiveEditorDiskState(cardPath, card);
     cardEditorCardPath.value = cardPath;
@@ -4712,6 +4825,7 @@ async function createLinkedObsidianNoteForActiveCard() {
 }
 
 async function addLinkedObjectToActiveCard(linkedObjectInput) {
+    await flushEditorSaveIfNeeded();
     const cardPath = getActiveEditorCardPath();
     if (!cardPath || !window.board || typeof window.board.addLinkedObject !== 'function') {
         return null;
@@ -4733,6 +4847,7 @@ async function addLinkedObjectToActiveCard(linkedObjectInput) {
                 frontmatter: result.frontmatter,
                 body: getEditorBodyValue(),
             });
+        await refreshEditorRevisionAfterMetadata(cardPath);
         } else {
             await refreshEditorAfterExternalFrontmatterChange(cardPath);
         }
@@ -4799,6 +4914,7 @@ function clearCardEditorDropState() {
 }
 
 async function addDroppedLinkedObjectsToActiveCard(files) {
+    await flushEditorSaveIfNeeded();
     const cardPath = getActiveEditorCardPath();
     const linkDroppedObjects = typeof window.__signboardTestLinkDroppedObjects === 'function'
         ? window.__signboardTestLinkDroppedObjects
@@ -4826,6 +4942,7 @@ async function addDroppedLinkedObjectsToActiveCard(files) {
                 frontmatter: result.frontmatter,
                 body: getEditorBodyValue(),
             });
+        await refreshEditorRevisionAfterMetadata(cardPath);
         } else {
             await refreshEditorAfterExternalFrontmatterChange(cardPath);
         }
@@ -5094,10 +5211,7 @@ async function refreshEditorAfterExternalFrontmatterChange(cardPath) {
         const card = await window.board.readCard(cardPath);
         setEditorFrontmatter(card.frontmatter);
         await renderActiveEditorMetadata(card.frontmatter, card.timestamps);
-        setActiveEditorDiskState(cardPath, {
-            frontmatter: card.frontmatter,
-            body: getEditorBodyValue(),
-        });
+        if (card.body === getEditorBodyValue()) setActiveEditorDiskState(cardPath, card);
     } catch (error) {
         console.error('Unable to refresh card metadata after external action.', error);
     }

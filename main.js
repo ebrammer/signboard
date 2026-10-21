@@ -1,3 +1,4 @@
+const { APP_NAME, UPDATES_ENABLED } = require('./lib/forkIdentity');
 const { getBuildInfo, formatBuildInfo, buildInfoDetails } = require('./lib/buildInfo');
 /*!
  * Signboard - A local-first Kanban app that writes Markdown
@@ -15,6 +16,8 @@ const path = require('path');
 const { renameManagedDirectory } = require('./lib/directoryRename');
 const { pathToFileURL } = require('url');
 const cardFrontmatter = require('./lib/cardFrontmatter');
+const { withBoardTransaction, withBoardRelocationTransaction } = require('./lib/fileTransaction');
+const { assertCardRevision } = require('./lib/cardRevision');
 const { readCardWithTimestamps } = require('./lib/cardTimestamps');
 const {
   insertCardFileAtTop,
@@ -125,9 +128,10 @@ function formatDueDateValue(rawDateValue) {
   return dueDateFormatter.format(dateToDisplay);
 }
 
-if (SIGNBOARD_USER_DATA_DIR) {
-  app.setPath('userData', path.resolve(SIGNBOARD_USER_DATA_DIR));
-}
+app.setName(APP_NAME);
+app.setPath('userData', SIGNBOARD_USER_DATA_DIR
+  ? path.resolve(SIGNBOARD_USER_DATA_DIR)
+  : path.join(app.getPath('appData'), APP_NAME));
 
 function getUserArgsFromProcessArgv(argv = process.argv) {
   if (!Array.isArray(argv) || argv.length <= 1) {
@@ -300,6 +304,20 @@ function readOpenBoardsState() {
     }
     return normalizeOpenBoardsState();
   }
+}
+
+// Renderer file origins can change after installing a fork or moving the app.
+// Recover only the already trusted desktop snapshot; this never grants trust.
+function readTrustedOpenBoardsState() {
+  const persisted = readOpenBoardsState();
+  const trustedRoots = readTrustedBoardRoots();
+  const openBoardRoots = persisted.openBoardRoots.filter((boardRoot) => trustedRoots.has(boardRoot));
+  return {
+    openBoardRoots,
+    activeBoardRoot: openBoardRoots.includes(persisted.activeBoardRoot)
+      ? persisted.activeBoardRoot
+      : (openBoardRoots[0] || ''),
+  };
 }
 
 function writeOpenBoardsState(state) {
@@ -2150,9 +2168,10 @@ app.on('open-url', (event, protocolUrl) => {
 });
 
 app.on('ready', () => {
-  app.setName('Signboard');
+  app.setName(APP_NAME);
 
-  if (!isCliMode && !isMcpServerMode && !isMcpConfigMode) {
+  // Isolated test profiles must not change the user's default URL handler.
+  if (!SIGNBOARD_USER_DATA_DIR && !isPackagedSmokeTestMode && !isCliMode && !isMcpServerMode && !isMcpConfigMode) {
     try {
       registerSignboardProtocolClient();
     } catch (error) {
@@ -2616,18 +2635,56 @@ function createWindow() {
   if (isPackagedSmokeTestMode) {
     win.webContents.once('did-finish-load', async () => {
       try {
-        const rendererLoaded = await win.webContents.executeJavaScript(
-          "document.readyState === 'complete' && typeof window.board === 'object' && typeof window.electronAPI === 'object'"
-        );
+        const fixture = JSON.parse(process.env.SIGNBOARD_PACKAGED_SMOKE_FIXTURE || 'null');
+        if (!fixture || !Array.isArray(fixture.boards) || fixture.boards.length !== 2) {
+          throw new Error('Packaged smoke test requires two isolated fixture boards.');
+        }
+        const rendererState = await win.webContents.executeJavaScript(`(${async function checkPackagedRenderer(expected) {
+          const normalizeRoot = root => String(root || '').replace(/\/+$/, '');
+          const deadline = Date.now() + 30000;
+          const waitFor = async (check, label) => {
+            while (Date.now() < deadline) {
+              if (check()) return;
+              await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            throw new Error(`${label} timed out: ${JSON.stringify({
+              readyState: document.readyState,
+              boardRoot: window.boardRoot || '',
+              boardName: document.getElementById('boardName')?.textContent || '',
+              cardTitles: Array.from(document.querySelectorAll('.card-title-button')).map(node => node.textContent.trim()),
+              overviewText: document.getElementById('overviewCount')?.textContent || '',
+            })}`);
+          };
+          await waitFor(() => document.readyState === 'complete' && window.board && window.electronAPI,
+            'Renderer preload');
+          await waitFor(() => typeof externalBoardSyncIntervalId !== 'undefined' && externalBoardSyncIntervalId &&
+            normalizeRoot(window.boardRoot) === expected.boards[0].root &&
+            document.getElementById('boardName')?.textContent.trim() === expected.boards[0].name &&
+            Array.from(document.querySelectorAll('.card-title-button')).some(node => node.textContent.trim() === expected.boards[0].title) &&
+            document.querySelector('#workspaceViewOverview svg'), 'Renderer initialization / persisted fixture restore');
+          const restoredBoardRoot = normalizeRoot(window.boardRoot);
+          document.getElementById('workspaceViewOverview').click();
+          await waitFor(() => {
+            const overlay = document.getElementById('overviewOverlay');
+            const titles = Array.from(document.querySelectorAll('#overviewBody .overview-card-title')).map(node => node.textContent.trim());
+            return overlay && !overlay.classList.contains('hidden') && overlay.getAttribute('aria-hidden') === 'false' &&
+              document.getElementById('workspaceViewOverview').getAttribute('aria-pressed') === 'true' &&
+              expected.boards.every(board => titles.includes(board.title)) && titles.length === expected.boards.length;
+          }, 'Functional Overview fixture render');
+          return {
+            rendererLoaded: true, rendererInitialized: true, fixtureBoardVisible: true, overviewLoaded: true,
+            restoredBoardRoot,
+            overviewCardTitles: Array.from(document.querySelectorAll('#overviewBody .overview-card-title')).map(node => node.textContent.trim()),
+            overviewProjects: document.querySelectorAll('#overviewBody .overview-project').length,
+            overviewCards: document.querySelectorAll('#overviewBody .overview-card').length,
+          };
+        }.toString()})(${JSON.stringify(fixture)})`);
         const markerPath = path.join(app.getPath('userData'), PACKAGED_SMOKE_TEST_FILE);
         await fsPromises.mkdir(path.dirname(markerPath), { recursive: true });
         await fsPromises.writeFile(markerPath, JSON.stringify({
-          version: app.getVersion(),
-          buildInfo: getBuildInfo(),
-          isPackaged: app.isPackaged,
-          rendererLoaded: rendererLoaded === true,
+          version: app.getVersion(), buildInfo: getBuildInfo(), isPackaged: app.isPackaged, ...rendererState,
         }), 'utf8');
-        app.exit(rendererLoaded === true && app.isPackaged ? 0 : 1);
+        app.exit(rendererState.rendererInitialized && rendererState.overviewLoaded && app.isPackaged ? 0 : 1);
       } catch (error) {
         console.error('Packaged application smoke test failed.', error);
         app.exit(1);
@@ -3749,6 +3806,17 @@ async function showUpdatePreviewDialog(type) {
 }
 
 async function checkForUpdates({ manual = false } = {}) {
+  if (!UPDATES_ENABLED) {
+    if (manual) {
+      await dialog.showMessageBox({
+        type: 'info', title: 'Syllabi Signboard updates',
+        message: 'This fork is updated from its source checkout.',
+        detail: 'Upstream automatic updates are disabled to preserve the fork’s features.',
+        buttons: ['OK'], noLink: true,
+      });
+    }
+    return;
+  }
   if (!app.isPackaged) {
     if (manual) {
       const win = getMainWindow();
@@ -3807,7 +3875,7 @@ async function checkForUpdates({ manual = false } = {}) {
 }
 
 function setupAutoUpdater() {
-  if (!app.isPackaged) {
+  if (!UPDATES_ENABLED || !app.isPackaged) {
     return;
   }
 
@@ -4157,7 +4225,7 @@ function ensureApplicationMenu() {
   }
 }
 
-ipcMain.handle('board-call', async (event, payload = {}) => {
+async function handleBoardCall(event, payload = {}) {
   const operation = typeof payload.op === 'string' ? payload.op : '';
   const args = Array.isArray(payload.args) ? payload.args : [];
 
@@ -4185,6 +4253,9 @@ ipcMain.handle('board-call', async (event, payload = {}) => {
       }
       return result;
     }
+
+    case 'getPersistedOpenBoardsState':
+      return { ok: true, ...readTrustedOpenBoardsState() };
 
     case 'syncOpenBoardsState':
       return {
@@ -4386,17 +4457,27 @@ ipcMain.handle('board-call', async (event, payload = {}) => {
     case 'writeCard': {
       const filePath = requireWritablePath(event.sender, args[0]);
       const card = args[1] && typeof args[1] === 'object' ? args[1] : {};
-      await cardFrontmatter.writeCard(filePath, {
-        ...card,
-        frontmatter: normalizeCardFrontmatterForBoardPath(event.sender, filePath, card.frontmatter),
-      });
+      try {
+        await cardFrontmatter.writeCard(filePath, {
+          ...card,
+          frontmatter: normalizeCardFrontmatterForBoardPath(event.sender, filePath, card.frontmatter),
+        });
+      } catch (error) {
+        if (error.details) return { ok: false, error: error.message, details: error.details };
+        throw error;
+      }
       await autoSyncManagedObsidianBaseForCardPath(event.sender, filePath);
-      return { ok: true };
+      return { ok: true, card: await readCardWithTimestamps(filePath) };
     }
 
     case 'updateFrontmatter': {
       const filePath = requireWritablePath(event.sender, args[0], { allowTrusted: true });
       const currentCard = await cardFrontmatter.readCard(filePath);
+      try {
+        assertCardRevision(currentCard.revision, args[2]);
+      } catch (error) {
+        return { ok: false, error: error.message, details: error.details };
+      }
       const nextFrontmatter = normalizeCardFrontmatterForBoardPath(event.sender, filePath, {
         ...currentCard.frontmatter,
         ...(args[1] && typeof args[1] === 'object' && !Array.isArray(args[1]) ? args[1] : {}),
@@ -4800,6 +4881,21 @@ ipcMain.handle('board-call', async (event, payload = {}) => {
     default:
       throw new Error(`UNKNOWN_BOARD_OPERATION:${operation}`);
   }
+}
+
+ipcMain.handle('board-call', async (event, payload = {}) => {
+  const cardMutations = new Set(['writeCard', 'updateFrontmatter', 'createCard', 'addLinkedObject', 'addDroppedLinkedObjects', 'recreateLinkedObsidianNote', 'relinkLinkedObsidianNote', 'copyCardObsidianUri', 'copyCardSignboardUri', 'getCardExternalLinks', 'createLinkedObsidianNote', 'archiveCard', 'archiveList', 'restoreArchivedCard', 'restoreArchivedList', 'recordCardListMove', 'reorderCardsInList', 'orderCardsByDueDate', 'reorderLists', 'moveCardToTop', 'moveCard', 'moveList', 'createList', 'deleteList', 'generateObsidianBase', 'openObsidianBase', 'importTrello', 'importObsidian', 'importTasksMd']);
+  if (!cardMutations.has(payload.op)) return handleBoardCall(event, payload);
+  const args = Array.isArray(payload.args) ? payload.args : [];
+  const root = typeof args[0] === 'string'
+    ? resolveTrustedBoardRootForPath(event.sender, args[0])
+    : requireActiveBoardRootForSender(event.sender);
+  if (!root) throw new Error('UNAUTHORIZED_BOARD_ROOT');
+  // Retain the same lock inode through a board-folder move and reconciliation.
+  if (['moveCard', 'moveList'].includes(payload.op) && path.resolve(args[0]) === path.resolve(root)) {
+    return withBoardRelocationTransaction(root, args[1], () => handleBoardCall(event, payload));
+  }
+  return withBoardTransaction(root, () => handleBoardCall(event, payload));
 });
 
 ipcMain.handle('choose-directory', async (event, { defaultPath } = {}) => {

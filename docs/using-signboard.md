@@ -2,6 +2,12 @@
 
 This guide covers the desktop app and the core workflow for managing a project in Signboard.
 
+## Syllabi Overview and save conflicts
+
+Choose **Overview** in the workspace dock to see work from all currently open boards, including cards without dates. Each project retains its original lists. Search matches project names, list names, titles, and card bodies. Opening a card uses its source project; closing it returns to Overview. Unreadable projects show a warning rather than silently disappearing. The visible Overview checks for external changes periodically.
+
+If an agent changes a card while its editor has an unsaved draft, the fork rejects a stale save and retains the draft. Review the current saved version, merge the changes you want, and explicitly save the merged draft. Copy the draft before discarding anything you need. This protection depends on cooperating fork writers; old upstream builds and arbitrary external editors do not use the same locks.
+
 ## Table of Contents
 
 - [How Signboard Stores Your Board](#how-signboard-stores-your-board)

@@ -1,6 +1,6 @@
 {
-  "appId": "com.electron.signboard",
-  "productName": "Signboard",
+  "appId": "com.syllabi.signboard",
+  "productName": "Syllabi Signboard",
   "protocols": [
     {
       "name": "Signboard",
@@ -51,7 +51,8 @@
     "hardenedRuntime": true,
     "entitlements": "build/entitlements.mac.plist",
     "entitlementsInherit": "build/entitlements.mac.plist",
-    "gatekeeperAssess": false
+    "gatekeeperAssess": false,
+    "identity": "-"
   },
   "linux": {
     "target": [
@@ -65,13 +66,6 @@
   },
   "afterSign": "scripts/notarize.js",
   "asar": true,
-  "publish": [
-    {
-      "provider": "github",
-      "owner": "cdevroe",
-      "repo": "signboard",
-      "releaseType": "draft"
-    }
-  ],
+  "publish": null,
   "beforePack": "scripts/verify-build-identity.js"
 }

@@ -202,3 +202,9 @@ This map focuses on source and operational files. Large generated/vendor folders
 
 - `docs/file-format.md` — public board/card format, managed metadata, backups, restore, and sync guidance.
 - `docs/codex/README.md` — contributor documentation entry point and local/public scope.
+
+## Syllabi fork
+
+See `FORK.md` for the separate application identity, profile adoption and rollback, compatible board format, and disabled upstream binary updater. `lib/forkIdentity.js` defines the application/profile name and update policy.
+
+Overview lives in `app/board/overviewView.js`, aggregates existing batched snapshots from open boards, and reuses the Planner source-board editor context. `lib/cardRevision.js` and `lib/fileTransaction.js` supply content revisions and cross-process write serialization. Keep Overview, safe-write, and editor-conflict regressions aligned when modifying these paths.

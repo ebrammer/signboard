@@ -1,4 +1,6 @@
-# Signboard
+# Syllabi Signboard
+
+This is the Syllabi fork of Signboard 1.7.4. It adds an all-project Overview and safer cooperating agent/desktop updates while preserving existing Markdown boards. See [fork setup and compatibility](./FORK.md). Upstream downloads below describe the original app; build this fork from source for its added features.
 
 Signboard is a local-first desktop kanban app that stores your lists as directories and cards as Markdown files on disk.
 
