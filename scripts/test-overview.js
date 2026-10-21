@@ -86,6 +86,7 @@ assert.equal(context.getActiveWorkspaceView(), 'overview');
 (async () => {
   context.window.board = { readProjectBrief: async () => ({ goal: '', nextStep: '', revision: 'missing' }), readBoardSnapshot: async (root, options) => {
     assert.equal(options.includeBoardSettings, true);
+    assert.equal(options.ensureBoardSettings, false, 'Overview reads must not create settings or recreate unavailable project roots');
     if (root === '/missing/') throw new Error('denied');
     return snapshot;
   }, listLists: async () => { throw new Error('denied'); } };
@@ -102,6 +103,21 @@ assert.equal(context.getActiveWorkspaceView(), 'overview');
   assert.equal(fallback.cardCount, 1);
   assert.equal(fallback.error, true);
   assert.equal(fallback.lists[0].cards[0].title, 'Legacy filename record');
+  // If batched snapshots are unavailable, settings reads must stay read-only too.
+  context.window.board.readBoardSnapshot = async () => { throw new Error('Snapshot unavailable'); };
+  context.window.board.listLists = async () => [];
+  context.window.board.getBoardName = async () => 'Read-only fallback';
+  let fallbackSettingsReads = 0;
+  context.window.board.readBoardSettings = async (root, options) => {
+    assert.equal(root, '/readonly/');
+    assert.equal(options.ensureFile, false, 'fallback must not create or migrate project settings');
+    fallbackSettingsReads += 1;
+    return {};
+  };
+  const readonlyFallback = await context.readBoardSnapshotForRender('/readonly/', { includeBoardSettings: true, ensureBoardSettings: false });
+  assert.equal(readonlyFallback.boardName, 'Read-only fallback');
+  assert.equal(fallbackSettingsReads, 1);
+
   // Rejecting an unsaved editor conflict must not move away from its source board.
   context.window.boardRoot = '/research/';
   context.window.__plannerViewState = { cardContext: { boardRoot: '/original/' }, cardOpenPromise: null };

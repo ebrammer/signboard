@@ -366,7 +366,10 @@ async function switchWorkspaceView(viewId, options = {}) {
     } else {
       clearWorkspaceTransitionState();
     }
-    renderBoard().catch((error) => {
+    if (options.awaitRender) {
+      try { await renderBoard(); }
+      catch (error) { clearWorkspaceTransitionState(); throw error; }
+    } else renderBoard().catch((error) => {
       clearWorkspaceTransitionState();
       console.error('Failed to render board after leaving Planner.', error);
     });
@@ -375,7 +378,11 @@ async function switchWorkspaceView(viewId, options = {}) {
   }
 
   await prepareWorkspaceBoardTransition(direction);
-  setActiveBoardView(targetView);
+  setActiveBoardView(targetView, { render: !options.awaitRender });
+  if (options.awaitRender) {
+    try { await renderBoard(); }
+    catch (error) { clearWorkspaceTransitionState(); throw error; }
+  }
   syncWorkspaceViewDockState(targetView);
   return true;
 }
@@ -1061,7 +1068,6 @@ function syncWorkspaceViewDockState(forcedActiveView = '') {
     const isActive = option.id === activeView;
     button.disabled = !hasOpenBoard && option.id !== WORKSPACE_VIEW_IDS.OVERVIEW;
     button.classList.toggle('is-active', isActive);
-    button.classList.toggle('is-primary', option.id === WORKSPACE_VIEW_IDS.KANBAN);
     button.setAttribute('aria-pressed', String(isActive));
     button.setAttribute('aria-label', `${isActive ? 'Current view: ' : 'Show '}${option.label}`);
     button.setAttribute('title', `${option.label}${option.shortcutActionId ? ` (${getShortcutHintText(option.shortcutActionId)})` : ''}`);

@@ -8,7 +8,6 @@ function syncOverviewNavigation(requestCount) {
   const badge = document.getElementById('overviewRequestCount'); badge.textContent = requestCount || ''; badge.hidden = !requestCount;
   document.getElementById('overviewNeedsYouTab').setAttribute('aria-label', `Needs you${requestCount ? `, ${requestCount} requests` : ''}`);
   document.getElementById('overviewTitle').textContent = state.tab === 'now' ? 'Now' : state.tab === 'projects' ? 'Projects' : 'Needs you';
-  document.getElementById('overviewSubtitle').textContent = state.tab === 'now' ? 'Keep the big picture close.' : state.tab === 'projects' ? 'Your open projects, in workspace order.' : 'Questions, decisions, and work ready for your review.';
   document.getElementById('overviewBody').setAttribute('aria-labelledby', state.tab === 'now' ? 'overviewNowTab' : state.tab === 'projects' ? 'overviewProjectsTab' : 'overviewNeedsYouTab');
   for (const button of document.querySelectorAll('[data-overview-workspace]')) button.disabled = !window.boardRoot;
 }
@@ -40,12 +39,40 @@ function overviewTimestamp(project) {
   if (timestamp) { time.dateTime = timestamp; time.title = new Date(timestamp).toLocaleString(); }
   return time;
 }
+function setOverviewNavigationError(message = '') {
+  const notice = document.getElementById('overviewNavigationError');
+  notice.textContent = message; notice.classList.toggle('hidden', !message);
+  if (message) announceSignboardStatus(message);
+}
+async function openOverviewProjectKanban(boardRoot) {
+  const state = getOverviewState();
+  if (state.openingProject) return false;
+  state.openingProject = boardRoot; setOverviewNavigationError();
+  try {
+    // A trusted root can disappear after polling. Confirm that the directory is
+    // readable before selecting it; child-card errors do not block navigation.
+    await window.board.listDirectories(boardRoot);
+    // Reuse the tab/switcher path so authorization and unsaved editor checks run
+    // before selecting a board. Then use the normal workspace transition.
+    if (!await switchToBoardPath(boardRoot)) {
+      setOverviewNavigationError('This project could not be opened. Check folder access and try again.');
+      return false;
+    }
+    await switchWorkspaceView('kanban', { awaitRender: true });
+    return true;
+  } catch (error) {
+    console.error('Failed to open project Kanban.', error);
+    if (!isOverviewOpen()) await openOverviewView();
+    setOverviewNavigationError('This project could not be opened. Resolve any unsaved changes or check folder access, then try again.');
+    return false;
+  } finally { state.openingProject = ''; }
+}
 function renderOverviewProjectTile(project) {
   const section = document.createElement('section'); section.className = 'overview-project'; section.dataset.boardRoot = project.boardRoot;
-  const button = overviewButton('', 'overview-project-title', () => openOverviewProjectDetail(project.boardRoot));
+  const button = overviewButton('', 'overview-project-title', () => openOverviewProjectKanban(project.boardRoot));
   button.dataset.overviewProject = project.boardRoot; button.dataset.focusKey = `project:${project.boardRoot}`;
-  button.setAttribute('aria-label', `Open ${project.boardDisplayName} project`); button.setAttribute('aria-controls', 'overviewProjectDetail');
-  button.setAttribute('aria-expanded', String(getOverviewState().selectedProject === project.boardRoot));
+  button.setAttribute('aria-label', `Open ${project.boardDisplayName} Kanban`);
+  section.classList.toggle('is-selected', getOverviewState().selectedProject === project.boardRoot);
   const top = document.createElement('span'); top.className = 'overview-project-top';
   const icon = createOverviewText('span', 'overview-project-icon', ''); icon.setAttribute('aria-hidden', 'true');
   icon.innerHTML = window.feather.icons.folder.toSvg({ width: 24, height: 24 }); top.appendChild(icon);
@@ -59,11 +86,17 @@ function renderOverviewProjectTile(project) {
   const current = overviewCurrentCard(project), work = document.createElement('span'); work.className = 'overview-current';
   work.append(createOverviewText('span', 'overview-eyebrow', 'Current'), createOverviewText('span', 'overview-current-text', current ? `${current.coordination.summary || current.title}${!current.hasWorkStatus && project.active.includes(current) ? ` (${current.listDisplayName} list)` : ''}` : 'No current work reported.'));
   button.appendChild(work);
-  const footer = document.createElement('span'); footer.className = 'overview-project-footer';
+  section.appendChild(button);
+  const footer = document.createElement('div'); footer.className = 'overview-project-footer';
   const nextStep = project.brief.nextStep || current?.coordination.nextStep;
-  footer.append(createOverviewText('span', 'overview-next-step', nextStep ? `Next: ${nextStep}` : 'Open project'), overviewTimestamp(getOverviewState().projects.find((item) => item.boardRoot === project.boardRoot) || project));
-  button.appendChild(footer); section.appendChild(button);
-  if (project.error || project.briefError) section.appendChild(createOverviewText('p', 'overview-source-warning', 'Some project files could not be read. Open project for details.'));
+  if (nextStep) footer.appendChild(createOverviewText('span', 'overview-next-step', `Next: ${nextStep}`));
+  const details = overviewButton('Show details', 'overview-show-details', () => openOverviewProjectDetail(project.boardRoot));
+  details.dataset.overviewDetails = project.boardRoot; details.dataset.focusKey = `details:${project.boardRoot}`;
+  details.setAttribute('aria-label', `Show ${project.boardDisplayName} details`); details.setAttribute('aria-controls', 'overviewProjectDetail');
+  details.setAttribute('aria-expanded', String(getOverviewState().selectedProject === project.boardRoot));
+  footer.append(details, overviewTimestamp(getOverviewState().projects.find((item) => item.boardRoot === project.boardRoot) || project));
+  section.appendChild(footer);
+  if (project.error || project.briefError) section.appendChild(createOverviewText('p', 'overview-source-warning', 'Some project files could not be read. Show details for more information.'));
   return section;
 }
 function renderOverviewNeedsPreview(requests, container) {
@@ -96,7 +129,7 @@ function openOverviewProjectDetail(boardRoot) {
 }
 function closeOverviewProjectDetail() {
   const state = getOverviewState(), root = state.selectedProject; state.selectedProject = ''; renderOverviewProjects();
-  const target = Array.from(document.querySelectorAll('[data-overview-project]')).find((button) => button.dataset.overviewProject === root) || document.getElementById('overviewSearchInput');
+  const target = Array.from(document.querySelectorAll('[data-overview-details]')).find((button) => button.dataset.overviewDetails === root) || document.getElementById('overviewSearchInput');
   target.focus({ preventScroll: true });
 }
 function renderOverviewProjectDetail(projects) {

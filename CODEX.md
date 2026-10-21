@@ -136,3 +136,7 @@ The Now project grid and Needs you interface is owned by `app/board/overviewView
 Only explicit decision/question/review metadata belongs in Needs you; respect completed-list workflow settings and exclude archived work. Human replies clear attention, not completion or list placement. Agents must not overwrite human responses, invent evidence, or equate blocked work with a human request. Preserve dirty inline drafts and focus during background refresh. Keep MCP schemas, docs, tests, and desktop IPC aligned.
 
 The Syllabi default theme and Now workspace use white/gray/black neutral palettes in both modes. Keep CSS root defaults, `DEFAULT_BOARD_THEME_PALETTES`, the `default` scheme and DESIGN.md aligned; do not reintroduce decorative green/blue accents. Preserve explicit custom board schemes and user label colors.
+
+Overview is read-only during polling: pass `ensureBoardSettings: false` through batched snapshots and fallback settings reads so unavailable project roots are never recreated. Normal board activation retains its existing settings normalization. Main project tiles open source Kanban; Show details is a separate action.
+
+- Default and legacy no-scheme boards must share the Tailwind Neutral palette. Test actual theme application for missing settings, not just the named default palette; generated accents must not reintroduce green. Keep CSS Neutral tokens, renderer palettes, source pills and editor fallbacks aligned.

@@ -3,23 +3,23 @@ version: alpha
 name: Signboard Default
 description: Default visual identity for Signboard's local-first board interface.
 colors:
-  primary: "#303030"
+  primary: "#262626"
   on-primary: "#FFFFFF"
-  secondary: "#626262"
-  tertiary: "#626262"
-  neutral: "#F7F7F7"
+  secondary: "#525252"
+  tertiary: "#525252"
+  neutral: "#FAFAFA"
   surface: "#FFFFFF"
-  on-surface: "#202020"
-  muted: "#626262"
-  border: "#DEDEDE"
+  on-surface: "#171717"
+  muted: "#525252"
+  border: "#D4D4D4"
   danger: "#D92D20"
-  dark-primary: "#E0E0E0"
-  dark-on-primary: "#202020"
-  dark-neutral: "#191919"
-  dark-surface: "#242424"
-  dark-on-surface: "#F2F2F2"
-  dark-muted: "#B8B8B8"
-  dark-border: "#424242"
+  dark-primary: "#E5E5E5"
+  dark-on-primary: "#171717"
+  dark-neutral: "#171717"
+  dark-surface: "#262626"
+  dark-on-surface: "#F5F5F5"
+  dark-muted: "#A3A3A3"
+  dark-border: "#525252"
 typography:
   headline-lg:
     fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
@@ -190,18 +190,18 @@ The default theme is light mode. Dark mode is a companion implementation and sho
 
 The palette is based on white, black and neutral grays.
 
-- **Primary (#303030):** Interaction charcoal for primary actions, active filters, focus rings, selected tabs, and today emphasis.
+- **Primary (#262626):** Interaction charcoal for primary actions, active filters, focus rings, selected tabs, and today emphasis.
 - **On Primary (#FFFFFF):** Text and icons placed directly on primary charcoal.
-- **Neutral (#F7F7F7):** The default board canvas and app background.
+- **Neutral (#FAFAFA):** The default board canvas and app background.
 - **Surface (#FFFFFF):** Cards, columns, controls, popovers, and modals.
-- **On Surface (#202020):** Core text and high-priority UI chrome.
-- **Muted (#626262):** Card previews, metadata, helper text, inactive tabs, and secondary icon color.
-- **Border (#DEDEDE):** Low-contrast dividers and object boundaries.
-- **Secondary (#626262):** Hover-strength neutral used when cards need a stronger boundary.
-- **Tertiary (#626262):** Success and completed-task color.
+- **On Surface (#171717):** Core text and high-priority UI chrome.
+- **Muted (#525252):** Card previews, metadata, helper text, inactive tabs, and secondary icon color.
+- **Border (#D4D4D4):** Low-contrast dividers and object boundaries.
+- **Secondary (#525252):** Hover-strength neutral used when cards need a stronger boundary.
+- **Tertiary (#525252):** Success and completed-task color.
 - **Danger (#D92D20):** Today/overdue and destructive color. Use sparingly.
 
-Dark mode mirrors the hierarchy with `#191919` as the canvas, `#242424` as the surface, `#F2F2F2` as text, `#B8B8B8` as muted text, and `#E0E0E0` as the primary action color.
+Dark mode mirrors the hierarchy with `#171717` as the canvas, `#262626` as the surface, `#F5F5F5` as text, `#A3A3A3` as muted text, and `#E5E5E5` as the primary action color.
 
 ## Typography
 
@@ -287,4 +287,8 @@ The fork’s default visual system is monochrome: white and light gray in light 
 
 Use a compact navigation rail, a bounded explicit-request preview, and a stable row-major grid: two project cards at ordinary desktop widths, three on wide windows and one on narrow windows. Emphasize current work, then the next action and factual freshness. Goals are optional; do not repeat empty goal fields or infer project health from timestamps. Request and blocker signals remain distinct.
 
-Project details open separately, beside the grid only when there is enough width, otherwise as a full detail view with Back. Preserve source workflow lists and completed disclosures there. Agent refreshes must not reorder tiles or interrupt keyboard focus and editing drafts. Do not add inactive navigation items or illustrative project facts to the live product.
+Keep the overview header compact, with its modest title and search in a thin top bar. The main project tile opens its Kanban board; a separate **Show details** footer action opens project details. Use sibling controls rather than nested buttons. Details open separately, beside the grid only when there is enough width, otherwise as a full detail view with Back. Preserve source workflow lists and completed disclosures there. Agent refreshes must not reorder tiles or interrupt keyboard focus and editing drafts. Do not add inactive navigation items or illustrative project facts to the live product.
+
+Workspace view controls use one shared native-button style: equal target sizes, the same hover surface, `aria-pressed` selected treatment, and the standard keyboard focus ring. Workspace selection and focus use neutral text/surface tokens, independent of legacy board accents. No view receives special primary sizing or emphasis; hovering the toolbar must not change its opacity or position.
+
+The default UI uses the [Tailwind CSS v3.4 Neutral scale](https://github.com/tailwindlabs/tailwindcss/blob/v3.4.17/src/public/colors.js). Named `--color-neutral-*` CSS tokens map to semantic surfaces, text, borders, and accents; renderer palettes use the same hex values for contrast calculations. No Tailwind runtime or CSS reset is required. Missing/invalid saved schemes without custom backgrounds resolve to this default, not a generated accent. Neutral completion and upcoming-date indicators avoid decorative green; explicit card-label colors and deliberately selected custom themes retain their meaning.

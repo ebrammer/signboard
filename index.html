@@ -60,12 +60,13 @@
     </aside>
     <div class="overview-main">
       <div class="overview-header">
-        <div><h2 id="overviewTitle">Now</h2><p id="overviewSubtitle">Keep the big picture close.</p></div>
+        <h2 id="overviewTitle">Now</h2>
         <div class="overview-header-controls">
           <input id="overviewSearchInput" type="search" placeholder="Search projects…" aria-label="Search projects, goals, requests, cards or notes">
           <button id="overviewCloseButton" type="button" title="Return to workspace" aria-label="Return to workspace"><i data-feather="x"></i></button>
         </div>
       </div>
+      <p id="overviewNavigationError" class="overview-navigation-error hidden" role="status"></p>
       <div class="overview-content">
         <div id="overviewBody" class="overview-body" role="tabpanel"></div>
         <section id="overviewProjectDetail" class="overview-project-detail hidden" aria-labelledby="overviewDetailTitle">
@@ -156,7 +157,7 @@
       <i data-feather="calendar"></i>
       <span>Planner</span>
     </button>
-    <button id="workspaceViewKanban" class="workspace-view-dock-button is-active is-primary" type="button" data-workspace-view="kanban" title="Show Kanban view" aria-label="Show Kanban view">
+    <button id="workspaceViewKanban" class="workspace-view-dock-button is-active" type="button" data-workspace-view="kanban" title="Show Kanban view" aria-label="Show Kanban view">
       <i data-feather="columns"></i>
       <span>Kanban</span>
     </button>

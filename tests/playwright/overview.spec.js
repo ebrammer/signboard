@@ -56,13 +56,13 @@ test('Overview preserves custom workflows, searches all projects, edits source c
     await expect(page.locator('.overview-card')).toHaveCount(0);
     // Each project keeps its complete source workflow in its own detail view.
     for (const board of [boardA, boardB]) {
-      await page.locator('[data-overview-project]').filter({ hasText: board === boardA ? 'Alpha Project' : 'Beta Project' }).click();
+      await page.locator(`[data-overview-details="${normalizeRoot(board)}"]`).click();
       await expect(page.locator('#overviewProjectDetail')).toBeVisible();
       await page.locator('.overview-completed-toggle').click();
       await expect(page.locator('#overviewDetailBody .overview-card')).toHaveCount(3);
       await page.locator('#overviewDetailBack').click();
     }
-    await page.locator('[data-overview-project]').filter({ hasText: 'Beta Project' }).click();
+    await page.locator(`[data-overview-details="${normalizeRoot(boardB)}"]`).click();
     await expect(page.locator('.overview-list-title', { hasText: 'Waiting on reviewer' })).toHaveText('Waiting on reviewer · 1');
     await expect(page.locator('#overviewCount')).toHaveText('2 projects · 6 cards');
     await page.screenshot({ path: testInfo.outputPath('overview-populated.png') });
@@ -108,10 +108,15 @@ test('Overview preserves custom workflows, searches all projects, edits source c
 });
 
 test('Overview shows missing project and no-open-board states', async ({}, testInfo) => {
-  await withOverviewApp(async ({ page, boardB }) => {
+  await withOverviewApp(async ({ page, boardA, boardB }) => {
     await page.locator('#workspaceViewOverview').click();
     await fs.rename(boardB, `${boardB}-unavailable`);
     await expect(page.locator('.overview-source-warning')).toContainText('Some project files could not be read', { timeout: 15000 });
+    await page.locator(`[data-overview-project="${normalizeRoot(boardB)}"]`).click();
+    await expect(page.locator('#overviewOverlay')).toBeVisible();
+    await expect(page.locator('#overviewNavigationError')).toBeVisible();
+    expect(await page.evaluate(() => getStoredActiveBoard())).toBe(normalizeRoot(boardA));
+    await expect(fs.stat(boardB)).rejects.toThrow();
     await page.locator('#overviewSearchInput').fill('unmatched');
     await expect(page.locator('.overview-source-warning')).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath('overview-read-warning.png') });
@@ -143,7 +148,7 @@ test('Now exposes malformed project briefs and keeps readable source cards avail
     await page.locator('#workspaceViewOverview').click();
     await expect(page.locator('.overview-project')).toHaveCount(2);
     await expect(page.locator('.overview-source-warning')).toContainText('Some project files could not be read');
-    await page.locator('[data-overview-project]').filter({ hasText: 'Beta Project' }).click();
+    await page.locator(`[data-overview-details="${normalizeRoot(boardB)}"]`).click();
     await expect(page.locator('#overviewDetailBody .overview-card')).toHaveCount(3);
     await expect(page.locator('#overviewDetailBody')).toContainText('malformed YAML');
     await expect(page.locator('#overviewDetailBody')).toContainText('Readable legacy fallback fixture.');
@@ -160,7 +165,7 @@ test('Now exposes malformed project briefs and keeps readable source cards avail
 test('a foreign project source conflict preserves the exact draft, disk bytes and selected detail', async ({}, testInfo) => {
   await withOverviewApp(async ({ page, boardA, boardB, cardPath }) => {
     await page.locator('#workspaceViewOverview').click();
-    await page.locator('[data-overview-project]').filter({ hasText: 'Beta Project' }).click();
+    await page.locator(`[data-overview-details="${normalizeRoot(boardB)}"]`).click();
     await page.locator('#overviewSearchInput').fill('Beta reviewer Tighten');
     await page.locator('#overviewDetailBody .overview-card-title').click();
     await expect(page.locator('#modalEditCard')).toBeVisible();
@@ -201,5 +206,106 @@ test('a foreign project source conflict preserves the exact draft, disk bytes an
     await expect(page.locator('#overviewSearchInput')).toHaveValue('Beta reviewer Tighten');
     await page.locator('#overviewSearchInput').fill('');
     await expect(page.locator('#overviewDetailBody .overview-card')).toHaveCount(2);
+  });
+});
+
+test('project tiles open the chosen Kanban while Show details stays in Now and the header stays compact', async ({}, testInfo) => {
+  await withOverviewApp(async ({ page, boardA, boardB, cardPath }) => {
+    const sourceBytes = await fs.readFile(cardPath);
+    // Give the destination a remembered Table view before returning to another project.
+    await page.evaluate(async (root) => { await switchToBoardPath(root); await switchWorkspaceView('table'); }, normalizeRoot(boardB));
+    await expect(page.locator('.board-table-view')).toBeVisible();
+    await page.evaluate((root) => switchToBoardPath(root), normalizeRoot(boardA));
+    await expect(page.locator('#boardName')).toHaveText('Alpha Project');
+    await page.locator('#workspaceViewOverview').click();
+    const main = page.locator(`[data-overview-project="${normalizeRoot(boardB)}"]`);
+    const details = page.locator(`[data-overview-details="${normalizeRoot(boardB)}"]`);
+    await expect(page.locator('.overview-project [data-overview-project]')).toHaveCount(2);
+    await expect(page.locator('.overview-project [data-overview-details]')).toHaveCount(2);
+    await expect(page.locator('.overview-project button button')).toHaveCount(0);
+    expect(await main.evaluate((element) => element.tagName)).toBe('BUTTON');
+    expect(await details.evaluate((element) => element.tagName)).toBe('BUTTON');
+    expect(await details.evaluate((element) => { const main = element.closest('.overview-project').querySelector('[data-overview-project]'); return !main.contains(element) && !element.contains(main); })).toBe(true);
+    for (const width of [1000, 560]) {
+      await page.setViewportSize({ width, height: 800 });
+      await expect(page.locator('#overviewSubtitle')).toHaveCount(0);
+      const header = await page.locator('.overview-header').boundingBox();
+      const title = await page.locator('#overviewTitle').boundingBox();
+      const search = await page.locator('#overviewSearchInput').boundingBox();
+      expect(header.height).toBeLessThanOrEqual(64);
+      expect(title.y).toBeGreaterThanOrEqual(header.y);
+      expect(title.y + title.height).toBeLessThanOrEqual(header.y + header.height);
+      expect(search.y).toBeGreaterThanOrEqual(header.y);
+      expect(search.y + search.height).toBeLessThanOrEqual(header.y + header.height);
+      expect(await page.locator('#overviewOverlay').evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`now-thin-header-${width}.png`) });
+    }
+    await details.focus();
+    await details.press('Enter');
+    await expect(page.locator('#overviewProjectDetail')).toBeVisible();
+    await expect(page.locator('#overviewOverlay')).toBeVisible();
+    expect(await page.evaluate(() => window.boardRoot)).toBe(normalizeRoot(boardA));
+    expect(await page.evaluate(() => getStoredActiveBoard())).toBe(normalizeRoot(boardA));
+    await page.locator('#overviewDetailBack').click();
+    await expect(details).toBeFocused();
+    await main.click();
+    await expect(page.locator('#overviewOverlay')).toBeHidden();
+    await expect(page.locator('#boardName')).toHaveText('Beta Project');
+    await expect(page.locator('#workspaceViewKanban')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.board-table-view')).toHaveCount(0);
+    await expect(page.locator('#board .card')).toHaveCount(3);
+    await expect(page.locator('#board')).toContainText('Waiting on reviewer');
+    expect(await page.evaluate(() => getStoredActiveBoard())).toBe(normalizeRoot(boardB));
+    expect(await page.evaluate(() => getActiveBoardView())).toBe('kanban');
+    for (const view of ['table', 'planner']) {
+      await page.locator(view === 'table' ? '#workspaceViewTable' : '#workspaceViewPlanner').click();
+      await expect(page.locator(view === 'table' ? '.board-table-view' : '#plannerOverlay')).toBeVisible();
+      await page.locator('#workspaceViewOverview').click();
+      await main.focus();
+      await main.press(view === 'table' ? 'Enter' : 'Space');
+      await expect(page.locator('#overviewOverlay')).toBeHidden();
+      await expect(page.locator('#plannerOverlay')).toBeHidden();
+      await expect(page.locator('#workspaceViewKanban')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('#board .card')).toHaveCount(3);
+      expect(await page.evaluate(() => getStoredActiveBoard())).toBe(normalizeRoot(boardB));
+      expect(await page.evaluate(() => getActiveBoardView())).toBe('kanban');
+    }
+    expect(await fs.readFile(cardPath)).toEqual(sourceBytes);
+    await page.screenshot({ path: testInfo.outputPath('project-tile-kanban-narrow.png') });
+  });
+});
+
+test('a failed same-project Kanban render restores Now with a visible error and supports retry', async ({}, testInfo) => {
+  await withOverviewApp(async ({ page, boardA }) => {
+    await page.locator('#workspaceViewTable').click();
+    await expect(page.locator('.board-table-view')).toBeVisible();
+    await page.locator('#workspaceViewOverview').click();
+    await page.evaluate(() => {
+      window.__nowOriginalRenderBoard = renderBoard;
+      window.__nowRenderAttempts = 0;
+      renderBoard = async () => { window.__nowRenderAttempts += 1; throw new Error('Synthetic Kanban render failure'); };
+    });
+    const main = page.locator(`[data-overview-project="${normalizeRoot(boardA)}"]`);
+    await main.click();
+    await expect(page.locator('#overviewOverlay')).toBeVisible();
+    await expect(page.locator('#overviewNavigationError')).toBeVisible();
+    await expect(page.locator('#overviewNavigationError')).toContainText('This project could not be opened.');
+    expect(await page.evaluate(() => window.__nowRenderAttempts)).toBe(1);
+    expect(await page.evaluate(() => getStoredActiveBoard())).toBe(normalizeRoot(boardA));
+    // The error survives a snapshot refresh until a deliberate retry.
+    await page.evaluate(() => renderOverviewView());
+    await expect(page.locator('#overviewNavigationError')).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('now-kanban-render-error.png') });
+    await page.evaluate(() => {
+      renderBoard = async (...args) => { window.__nowRenderAttempts += 1; return window.__nowOriginalRenderBoard(...args); };
+    });
+    await main.click();
+    await expect(page.locator('#overviewOverlay')).toBeHidden();
+    await expect(page.locator('#workspaceViewKanban')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#board .card')).toHaveCount(3);
+    expect(await page.evaluate(() => window.__nowRenderAttempts)).toBe(2);
+    await page.evaluate(() => { renderBoard = window.__nowOriginalRenderBoard; delete window.__nowOriginalRenderBoard; });
+    await page.locator('#workspaceViewOverview').click();
+    await expect(page.locator('#overviewNavigationError')).toBeHidden();
   });
 });

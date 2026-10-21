@@ -2654,6 +2654,8 @@ function createWindow() {
               boardName: document.getElementById('boardName')?.textContent || '',
               cardTitles: Array.from(document.querySelectorAll('.card-title-button')).map(node => node.textContent.trim()),
               overviewText: document.getElementById('overviewCount')?.textContent || '',
+              openingProject: typeof getOverviewState === 'function' ? getOverviewState().openingProject || '' : '',
+              navigationError: document.getElementById('overviewNavigationError')?.textContent || '',
             })}`);
           };
           await waitFor(() => document.readyState === 'complete' && window.board && window.electronAPI,
@@ -2670,8 +2672,8 @@ function createWindow() {
           const overviewProjects = document.querySelectorAll('#overviewBody .overview-project').length;
           const overviewCardTitles = [];
           for (const expectedBoard of expected.boards) {
-            const projectButton = Array.from(document.querySelectorAll('#overviewBody [data-overview-project]'))
-              .find(node => normalizeRoot(node.dataset.overviewProject) === expectedBoard.root);
+            const projectButton = Array.from(document.querySelectorAll('#overviewBody [data-overview-details]'))
+              .find(node => normalizeRoot(node.dataset.overviewDetails) === expectedBoard.root);
             if (!projectButton) throw new Error(`Missing project tile: ${expectedBoard.name}`);
             projectButton.click();
             await waitFor(() => {
@@ -2684,6 +2686,18 @@ function createWindow() {
               .map(node => node.textContent.trim()));
             document.getElementById('overviewDetailBack').click();
             await waitFor(() => document.getElementById('overviewProjectDetail').classList.contains('hidden'), 'Return to project grid');
+            const kanbanButton = Array.from(document.querySelectorAll('#overviewBody [data-overview-project]'))
+              .find(node => normalizeRoot(node.dataset.overviewProject) === expectedBoard.root);
+            kanbanButton.click();
+            await waitFor(() => !getOverviewState().openingProject &&
+              normalizeRoot(window.boardRoot) === expectedBoard.root &&
+              document.getElementById('overviewOverlay').classList.contains('hidden') &&
+              document.getElementById('workspaceViewKanban').getAttribute('aria-pressed') === 'true' &&
+              Array.from(document.querySelectorAll('.card-title-button')).some(node => node.textContent.trim() === expectedBoard.title),
+              `Project Kanban: ${expectedBoard.name}`);
+            document.getElementById('workspaceViewOverview').click();
+            await waitFor(() => !document.getElementById('overviewOverlay').classList.contains('hidden') &&
+              document.querySelectorAll('#overviewBody .overview-project').length === expected.boards.length, 'Return to Now');
           }
           await waitFor(() => {
             const overlay = document.getElementById('overviewOverlay');
@@ -4540,7 +4554,8 @@ async function handleBoardCall(event, payload = {}) {
 
     case 'readBoardSettings': {
       const boardRoot = requireReadableBoardRoot(event.sender, args[0]);
-      return boardLabels.readBoardSettings(boardRoot);
+      const options = args[1] && typeof args[1] === 'object' && !Array.isArray(args[1]) ? args[1] : {};
+      return boardLabels.readBoardSettings(boardRoot, { ensureFile: options.ensureFile !== false });
     }
 
     case 'updateBoardLabels': {

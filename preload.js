@@ -107,7 +107,7 @@ contextBridge.exposeInMainWorld('board', {
     return result;
   },
   normalizeFrontmatter: async (frontmatter) => invokeBoard('normalizeFrontmatter', frontmatter),
-  readBoardSettings: async (boardRoot) => invokeBoard('readBoardSettings', boardRoot),
+  readBoardSettings: async (boardRoot, options) => invokeBoard('readBoardSettings', boardRoot, options),
   updateBoardLabels: async (boardRoot, labels) => invokeBoard('updateBoardLabels', boardRoot, labels),
   updateBoardThemeOverrides: async (boardRoot, themeOverrides) =>
     invokeBoard('updateBoardThemeOverrides', boardRoot, themeOverrides),

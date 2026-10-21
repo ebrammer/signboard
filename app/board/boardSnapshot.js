@@ -117,7 +117,7 @@ async function readBoardSnapshotForRender(boardRoot, options = {}) {
   const [boardName, boardSettings] = await Promise.all([
     Promise.resolve().then(() => window.board.getBoardName(boardRoot)).catch(() => ''),
     options.includeBoardSettings !== false && window.board && typeof window.board.readBoardSettings === 'function'
-      ? window.board.readBoardSettings(boardRoot).catch(() => null)
+      ? window.board.readBoardSettings(boardRoot, { ensureFile: options.ensureBoardSettings !== false }).catch(() => null)
       : Promise.resolve(null),
   ]);
 

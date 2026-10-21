@@ -61,7 +61,7 @@ function filterOverviewProjects(projects, query) {
 async function readOverviewProject(boardRoot) {
   try {
     const [snapshot, briefResult] = await Promise.all([
-      readBoardSnapshotForRender(boardRoot, { includeBoardSettings: true, includeTimestamps: true, includeTaskItems: false }),
+      readBoardSnapshotForRender(boardRoot, { includeBoardSettings: true, includeTimestamps: true, includeTaskItems: false, ensureBoardSettings: false }),
       window.board.readProjectBrief(boardRoot).then((brief) => ({ brief }), (error) => ({ brief: {}, error: error.message })),
     ]);
     await Promise.all(snapshot.lists.map(async (list) => {

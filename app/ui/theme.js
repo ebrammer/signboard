@@ -3,18 +3,19 @@ function buildOverTypeSelectionColor(themeName, accentColor, surfaceColor) {
   const mixedSelectionColor = mixHexColors(accentColor, surfaceColor, themeIsDark ? 0.35 : 0.2);
   const selectionRgb = hexToRgb(mixedSelectionColor);
   if (!selectionRgb) {
-    return themeIsDark ? 'rgba(111, 207, 151, 0.44)' : 'rgba(11, 95, 255, 0.34)';
+    return themeIsDark ? 'rgba(229, 229, 229, 0.44)' : 'rgba(38, 38, 38, 0.34)';
   }
 
   return `rgba(${selectionRgb.r}, ${selectionRgb.g}, ${selectionRgb.b}, ${themeIsDark ? 0.44 : 0.34})`;
 }
 
 function createOverTypeThemeFromPalette(themeName, palette) {
-  const textColor = palette && palette.text ? palette.text : '#2f2f2f';
-  const surfaceColor = palette && palette.surface ? palette.surface : '#ffffff';
-  const accentColor = palette && palette.accent ? palette.accent : '#3366cc';
-  const borderColor = palette && palette.border ? palette.border : '#dedada';
-  const mutedColor = palette && palette.muted ? palette.muted : '#666666';
+  const defaults = DEFAULT_BOARD_THEME_PALETTES[themeName === 'dark' ? 'dark' : 'light'];
+  const textColor = palette && palette.text ? palette.text : defaults.text;
+  const surfaceColor = palette && palette.surface ? palette.surface : defaults.surface;
+  const accentColor = palette && palette.accent ? palette.accent : defaults.accent;
+  const borderColor = palette && palette.border ? palette.border : defaults.border;
+  const mutedColor = palette && palette.muted ? palette.muted : defaults.muted;
 
   return {
     name: themeName,
@@ -116,7 +117,7 @@ function restoreCurrentBoardThemeVariables() {
     return;
   }
   const schemeId = getBoardColorScheme();
-  if (schemeId && typeof applyColorSchemeById === 'function') {
+  if (schemeId && typeof getColorSchemeById === 'function' && getColorSchemeById(schemeId) && typeof applyColorSchemeById === 'function') {
     applyColorSchemeById(schemeId, { renderControls: false });
     return;
   }

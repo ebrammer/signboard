@@ -57,7 +57,7 @@ test('first launch restores five trusted project boards from persisted workspace
     await page.screenshot({ path: testInfo.outputPath('restored-five-projects-compact.png') });
     // Visit all five complete source workflows; grid tiles do not duplicate source cards.
     for (const board of boards) {
-      await page.locator('[data-overview-project]').filter({ hasText: path.basename(board) }).click();
+      await page.locator(`[data-overview-details="${normalizeRoot(board)}"]`).click();
       await expect(page.locator('#overviewProjectDetail')).toBeVisible();
       await page.locator('.overview-completed-toggle').click();
       await expect(page.locator('#overviewDetailBody .overview-card')).toHaveCount(3);

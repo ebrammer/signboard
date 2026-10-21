@@ -83,31 +83,45 @@ html, body { margin: 0; height: 100%; }
   --paynes-gray: #5d737eff;
   --white: #fcfcfcff;
 
+  /* Tailwind CSS v3.4 Neutral scale; hex values also used by renderer palettes. */
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f5f5f5;
+  --color-neutral-200: #e5e5e5;
+  --color-neutral-300: #d4d4d4;
+  --color-neutral-400: #a3a3a3;
+  --color-neutral-500: #737373;
+  --color-neutral-600: #525252;
+  --color-neutral-700: #404040;
+  --color-neutral-800: #262626;
+  --color-neutral-900: #171717;
+  --color-neutral-950: #0a0a0a;
+  --color-white: #ffffff;
+
   /* Theme palette defaults (light + dark) */
-  --sb-light-bg: #f7f7f7;
-  --sb-light-bg-card: #ffffff;
-  --sb-light-text: #202020;
-  --sb-light-muted: #626262;
-  --sb-light-border: #dedede;
+  --sb-light-bg: var(--color-neutral-50);
+  --sb-light-bg-card: var(--color-white);
+  --sb-light-text: var(--color-neutral-900);
+  --sb-light-muted: var(--color-neutral-600);
+  --sb-light-border: var(--color-neutral-300);
   --sb-light-shadow: rgba(0, 0, 0, .04);
   --sb-light-shadow-card: rgba(0, 0, 0, .06);
-  --sb-light-accent: #303030;
-  --sb-light-accent-contrast: #ffffff;
+  --sb-light-accent: var(--color-neutral-800);
+  --sb-light-accent-contrast: var(--color-white);
 
-  --sb-dark-bg: #191919;
-  --sb-dark-bg-card: #242424;
-  --sb-dark-text: #f2f2f2;
-  --sb-dark-muted: #b8b8b8;
-  --sb-dark-border: #424242;
+  --sb-dark-bg: var(--color-neutral-900);
+  --sb-dark-bg-card: var(--color-neutral-800);
+  --sb-dark-text: var(--color-neutral-100);
+  --sb-dark-muted: var(--color-neutral-400);
+  --sb-dark-border: var(--color-neutral-600);
   --sb-dark-shadow: rgba(0, 0, 0, 0.45);
   --sb-dark-shadow-card: rgba(0, 0, 0, 0.55);
-  --sb-dark-accent: #e0e0e0;
-  --sb-dark-accent-contrast: #202020;
+  --sb-dark-accent: var(--color-neutral-200);
+  --sb-dark-accent-contrast: var(--color-neutral-900);
 
   /* Active theme variables (light mode by default) */
   --bg: var(--sb-light-bg);
   --bg-card: var(--sb-light-bg-card);
-  --text: var(--sb-light-text);              /* slate-900 */
+  --text: var(--sb-light-text);
   --muted: var(--sb-light-muted);
   --border: var(--sb-light-border);
   --shadow: var(--sb-light-shadow);
@@ -115,8 +129,8 @@ html, body { margin: 0; height: 100%; }
   --accent: var(--sb-light-accent);
   --accent-contrast: var(--sb-light-accent-contrast);
   --due-date-today-color: color-mix(in oklab, #d92d20 72%, var(--text));
-  --due-date-tomorrow-color: color-mix(in oklab, #15803d 78%, var(--text));
-  --task-progress-complete-color: color-mix(in oklab, #15803d 78%, var(--text));
+  --due-date-tomorrow-color: var(--muted);
+  --task-progress-complete-color: var(--muted);
 
   /* Radius / spacing / type sizes */
   --radius: 10px;
@@ -149,8 +163,8 @@ html, body { margin: 0; height: 100%; }
   --accent: var(--sb-dark-accent);
   --accent-contrast: var(--sb-dark-accent-contrast);
   --due-date-today-color: color-mix(in oklab, #ff6b6b 80%, var(--text));
-  --due-date-tomorrow-color: color-mix(in oklab, #4ade80 80%, var(--text));
-  --task-progress-complete-color: color-mix(in oklab, #4ade80 84%, var(--text));
+  --due-date-tomorrow-color: var(--muted);
+  --task-progress-complete-color: var(--muted);
 }
 
 :root[data-board-color-scheme="cozy-blush"]:not([data-theme="dark"]) .list {
@@ -389,15 +403,7 @@ body.sponsor-pill-dismissed .sponsor-signboard-pill {
     0 18px 42px color-mix(in oklab, var(--text) 16%, transparent),
     0 1px 1px color-mix(in oklab, var(--text) 10%, transparent);
   backdrop-filter: saturate(1.15) blur(14px);
-  opacity: .72;
   transform: translateX(-50%);
-  transition: opacity .16s ease, transform .16s ease, background .16s ease;
-}
-
-.workspace-view-dock:hover,
-.workspace-view-dock:focus-within {
-  opacity: 1;
-  transform: translateX(-50%) translateY(-1px);
 }
 
 body.board-empty .workspace-view-dock {
@@ -410,7 +416,7 @@ body.board-empty .workspace-view-dock {
   justify-content: center;
   gap: 7px;
   min-width: 116px;
-  min-height: 36px;
+  min-height: 40px;
   padding: 7px 13px;
   border: 0;
   border-radius: 999px;
@@ -422,37 +428,31 @@ body.board-empty .workspace-view-dock {
   line-height: 1;
 }
 
-.workspace-view-dock-button:hover {
+.workspace-view-dock-button:hover:not(:disabled) {
   background: color-mix(in oklab, var(--bg-card) 84%, var(--border));
   color: var(--text);
 }
 
 .workspace-view-dock-button:focus-visible {
-  outline: 3px solid color-mix(in oklab, var(--accent) 42%, var(--bg-card));
+  outline: 3px solid color-mix(in oklab, var(--text) 45%, var(--bg-card));
   outline-offset: 2px;
 }
 
 .workspace-view-dock-button svg {
+  flex-shrink: 0;
   width: 16px;
   height: 16px;
 }
 
-.workspace-view-dock-button.is-primary {
-  min-width: 146px;
-  min-height: 48px;
+/* Every workspace view is a peer in the same native-button control. */
+.workspace-view-dock-button[aria-pressed="true"],
+.workspace-view-dock-button[aria-pressed="true"]:hover:not(:disabled) {
+  background: var(--text);
+  color: var(--bg-card);
 }
 
-.workspace-view-dock-button.is-active {
-  background: color-mix(in oklab, var(--accent) 15%, var(--bg-card));
-  color: color-mix(in oklab, var(--accent) 88%, var(--text));
-}
-
-.workspace-view-dock-button.is-active.is-primary {
-  background: var(--accent);
-  color: var(--accent-contrast);
-  box-shadow:
-    0 8px 18px color-mix(in oklab, var(--accent) 23%, transparent),
-    0 1px 1px color-mix(in oklab, var(--text) 12%, transparent);
+@media (forced-colors: active) {
+  .workspace-view-dock-button[aria-pressed="true"] { outline: 2px solid Highlight; }
 }
 
 .board-toolbar-group {
@@ -720,8 +720,8 @@ body:not(.board-empty) #boardTabs {
 /* Planner overlay */
 .planner-overlay {
   --due-date-today-color: color-mix(in oklab, #d92d20 72%, var(--text));
-  --due-date-tomorrow-color: color-mix(in oklab, #15803d 78%, var(--text));
-  --task-progress-complete-color: color-mix(in oklab, #15803d 78%, var(--text));
+  --due-date-tomorrow-color: var(--muted);
+  --task-progress-complete-color: var(--muted);
   position: fixed;
   z-index: 45;
   inset: 0;
@@ -735,8 +735,8 @@ body:not(.board-empty) #boardTabs {
 
 :root[data-theme="dark"] .planner-overlay {
   --due-date-today-color: color-mix(in oklab, #ff6b6b 80%, var(--text));
-  --due-date-tomorrow-color: color-mix(in oklab, #4ade80 80%, var(--text));
-  --task-progress-complete-color: color-mix(in oklab, #4ade80 84%, var(--text));
+  --due-date-tomorrow-color: var(--muted);
+  --task-progress-complete-color: var(--muted);
 }
 
 /* The default workspace is monochrome; selected schemes keep their own cues. */
@@ -2539,7 +2539,6 @@ body.board-card-drag-active * {
   transform: none;
 }
 .card-title-button:focus-visible {
-  outline: 3px solid color-mix(in oklab, var(--accent) 42%, var(--bg-card));
   outline-offset: 2px;
 }
 .card-body {
@@ -6269,17 +6268,13 @@ select:disabled {
     padding: 12px 12px calc(var(--workspace-view-dock-height) + var(--workspace-view-dock-bottom) + 20px);
   }
   .workspace-view-dock {
-    width: min(calc(100vw - 24px), 390px);
+    width: min(calc(100vw - 24px), 520px);
     padding: 4px 8px;
   }
   .workspace-view-dock-button {
     min-width: 0;
     flex: 1 1 0;
     padding: 7px 8px;
-  }
-  .workspace-view-dock-button.is-primary {
-    min-width: 0;
-    min-height: 42px;
   }
   #quickAddHeaderButton span,
   .sponsor-signboard-button span:not(.sponsor-signboard-dismiss) {
@@ -6389,18 +6384,18 @@ select:disabled {
 
 /* Now and its body-level tooltips use the neutral workspace palette. */
 .overview-overlay, body.overview-open #sbTooltip {
-  --bg: #f7f7f7; --bg-card: #ffffff; --text: #202020; --muted: #626262;
-  --border: #dedede; --accent: #303030; --accent-contrast: #ffffff;
-  --overview-rail: #ededed; --overview-accent-soft: #e6e6e6; --shadow-card: rgba(0, 0, 0, .035);
+  --bg: var(--color-neutral-50); --bg-card: var(--color-white); --text: var(--color-neutral-900); --muted: var(--color-neutral-600);
+  --border: var(--color-neutral-300); --accent: var(--color-neutral-800); --accent-contrast: var(--color-white);
+  --overview-rail: var(--color-neutral-100); --overview-accent-soft: var(--color-neutral-200); --shadow-card: rgba(0, 0, 0, .035);
 }
 .overview-overlay {
   position: fixed; inset: 0; z-index: 45; display: grid; grid-template-columns: 188px minmax(0, 1fr);
   background: var(--bg); color: var(--text);
 }
 :root[data-theme="dark"] .overview-overlay, :root[data-theme="dark"] body.overview-open #sbTooltip {
-  --bg: #191919; --bg-card: #242424; --text: #f2f2f2; --muted: #b8b8b8;
-  --border: #424242; --accent: #e0e0e0; --accent-contrast: #202020;
-  --overview-rail: #202020; --overview-accent-soft: #383838; --shadow-card: rgba(0, 0, 0, .12);
+  --bg: var(--color-neutral-900); --bg-card: var(--color-neutral-800); --text: var(--color-neutral-100); --muted: var(--color-neutral-400);
+  --border: var(--color-neutral-600); --accent: var(--color-neutral-200); --accent-contrast: var(--color-neutral-900);
+  --overview-rail: var(--color-neutral-900); --overview-accent-soft: var(--color-neutral-700); --shadow-card: rgba(0, 0, 0, .12);
 }
 .overview-overlay ::-webkit-scrollbar-thumb { background: #bdbdbd; }
 .overview-overlay ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
@@ -6419,14 +6414,15 @@ select:disabled {
 .overview-workspace-nav { margin-top: auto; }
 .overview-rail-caption { padding: 0 12px 5px; color: var(--muted); font-size: 11px; }
 .overview-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.overview-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 36px 32px 24px; }
-.overview-header h2 { margin: 0; font-size: 34px; line-height: 1.2; font-weight: 700; }
-#overviewSubtitle { margin: 6px 0 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
-.overview-header-controls { display: flex; gap: 8px; align-items: center; padding-top: 2px; }
+.overview-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 62px; padding: 10px 32px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.overview-header h2 { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 650; flex-shrink: 0; }
+.overview-header-controls { display: flex; gap: 8px; align-items: center; min-width: 0; }
 #overviewSearchInput { width: min(300px, 28vw); min-width: 0; min-height: 40px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg-card); color: var(--text); padding: 9px 12px; font-size: 13px; }
 #overviewSearchInput::placeholder { color: var(--muted); opacity: 1; }
 #overviewCloseButton { display: grid; place-items: center; width: 36px; height: 40px; border: 1px solid transparent; color: var(--muted); background: transparent; border-radius: 8px; }
 #overviewCloseButton svg { width: 18px; height: 18px; }
+.overview-navigation-error { flex-shrink: 0; margin: 0 32px 16px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); color: var(--text); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.overview-navigation-error.hidden { display: none; }
 .overview-content { display: flex; min-height: 0; flex: 1; min-width: 0; }
 .overview-body { flex: 1; min-width: 0; overflow: auto; padding: 6px 32px 24px; }
 .overview-count { flex-shrink: 0; padding: 4px 32px 12px; color: var(--muted); font-size: 11px; }
@@ -6435,9 +6431,9 @@ select:disabled {
 .overview-section-heading > span { color: var(--muted); font-size: 12px; }
 .overview-project-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; }
 .overview-project { min-width: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 8px var(--shadow-card); overflow: hidden; }
-.overview-project-title { display: flex; flex-direction: column; width: 100%; height: 260px; gap: 7px; margin: 0; padding: 18px; border: 0; border-radius: 11px; background: transparent; color: var(--text); text-align: left; white-space: normal; }
+.overview-project-title { display: flex; flex-direction: column; width: 100%; height: 190px; gap: 7px; margin: 0; padding: 16px; border: 0; border-radius: 11px; background: transparent; color: var(--text); text-align: left; white-space: normal; }
 .overview-project-title:hover { background: color-mix(in srgb, var(--bg-card) 94%, var(--overview-accent-soft)); }
-.overview-project-title[aria-expanded="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
+.overview-project.is-selected { outline: 2px solid var(--accent); outline-offset: -2px; }
 .overview-project-top { display: flex; align-items: center; justify-content: space-between; min-height: 34px; gap: 8px; width: 100%; }
 .overview-project-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; color: var(--accent); background: var(--overview-accent-soft); flex-shrink: 0; }
 .overview-project-signals { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
@@ -6449,9 +6445,11 @@ select:disabled {
 .overview-current { display: flex; flex-direction: column; gap: 3px; margin-top: auto; width: 100%; min-height: 57px; }
 .overview-eyebrow { color: var(--muted); font-size: 10px; text-transform: uppercase; }
 .overview-current-text { font-size: 14px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.overview-project-footer { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; width: 100%; margin-top: 5px; padding-top: 10px; border-top: 1px solid var(--border); }
+.overview-project-footer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 8px; min-height: 62px; padding: 8px 16px 10px; border-top: 1px solid var(--border); }
+.overview-show-details { justify-self: start; padding: 2px 0; min-height: 24px; border: 0; border-radius: 3px; background: transparent; color: var(--text); font-size: 12px; text-align: left; }
+.overview-show-details:hover { text-decoration: underline; }
 .overview-next-step { margin: 0; font-size: 12px; line-height: 1.45; color: var(--muted); overflow-wrap: anywhere; }
-.overview-project-footer .overview-next-step { flex: 1 1 120px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.overview-project-footer .overview-next-step { grid-column: 1 / -1; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .overview-updated { display: block; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .overview-needs-preview { margin-bottom: 28px; }
 .overview-preview-requests { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -6529,14 +6527,13 @@ body.overview-open .workspace-view-dock, body.overview-open .sponsor-signboard-p
   .overview-tabs button, .overview-workspace-nav button { gap: 6px; width: auto; padding: 8px; min-height: 38px; font-size: 12px; }
   .overview-nav-count { margin-left: 0; }
   .overview-workspace-nav button span { display: none; }
-  .overview-header { padding: 22px 20px 16px; flex-wrap: wrap; gap: 14px; }
-  .overview-header h2 { font-size: 30px; }
-  .overview-header-controls { width: 100%; padding: 0; }
+  .overview-header { padding: 10px 20px; gap: 12px; }
+  .overview-header h2 { font-size: 18px; }
+  .overview-header-controls { flex: 1; justify-content: flex-end; }
   #overviewSearchInput { flex: 1; width: auto; }
   .overview-body { padding: 4px 20px 20px; }
   .overview-count { padding: 4px 20px 10px; }
   .overview-project-grid, .overview-preview-requests { grid-template-columns: minmax(0, 1fr); }
-  .overview-project-title { height: 240px; }
   .overview-request-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 10px; padding: 12px; margin: 0; }
   .overview-request-preview-context, .overview-request-preview-ask { grid-column: 1; }
   .overview-request-preview-ask { font-size: 12px; }
@@ -6552,7 +6549,7 @@ body.overview-open .workspace-view-dock, body.overview-open .sponsor-signboard-p
 }
 @media (forced-colors: active) {
   .overview-card, .overview-project, .overview-source-warning, .overview-request, .overview-request-preview { border-color: CanvasText; }
-  .overview-tabs button[aria-selected="true"], .overview-project-title[aria-expanded="true"] { outline: 2px solid Highlight; }
+  .overview-tabs button[aria-selected="true"], .overview-project.is-selected { outline: 2px solid Highlight; }
   .overview-overlay button:focus-visible { outline-color: Highlight; }
 }
 @media print { .overview-overlay { display: none !important; } }

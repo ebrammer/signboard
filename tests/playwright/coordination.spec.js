@@ -76,7 +76,7 @@ test('Now projects preserve legacy bytes, omit absent metadata, edit summaries a
     expect(await fs.readFile(cardPath, 'utf8')).toBe(before);
     await expect(fs.stat(path.join(boards[0], '.signboard-project.md'))).rejects.toThrow();
     await page.screenshot({ path: testInfo.outputPath('compact-five-projects.png') });
-    await page.locator('[data-overview-project]').first().click();
+    await page.locator('[data-overview-details]').first().click();
     await page.locator('#overviewDetailBody').getByRole('button', { name: 'Edit summary', exact: true }).click();
     await panel(page).getByLabel('Goal', { exact: true }).fill('Make the next release easier to review');
     await panel(page).getByLabel('Next step', { exact: true }).fill('Choose a homepage draft');
@@ -118,7 +118,7 @@ test('Now projects preserve legacy bytes, omit absent metadata, edit summaries a
     expect(saved.frontmatter.sb_response).toBe('Ship draft A.'); expect(saved.frontmatter.sb_attention).toBe('none'); expect(saved.frontmatter.sb_work_status).toBe('blocked');
     await fs.stat(cardPath); // replying never moves the source card
     await page.getByRole('tab', { name: 'Projects', exact: true }).click();
-    await page.locator('[data-overview-project]').first().click();
+    await page.locator('[data-overview-details]').first().click();
     await page.setViewportSize({ width: 560, height: 800 });
     expect(await page.locator('#overviewOverlay').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     expect(await page.locator('#overviewBody').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
@@ -130,7 +130,7 @@ test('Now projects preserve legacy bytes, omit absent metadata, edit summaries a
 
 test('project and request conflicts preserve drafts until latest context is reviewed', async () => {
   await withApp(async ({ page, boards, cardPath }) => {
-    await page.locator('[data-overview-project]').first().click();
+    await page.locator('[data-overview-details]').first().click();
     await page.locator('#overviewDetailBody').getByRole('button', { name: 'Edit summary', exact: true }).click();
     await panel(page).getByLabel('Goal', { exact: true }).fill('My draft goal');
     await page.evaluate(() => switchWorkspaceView('table'));
@@ -184,7 +184,7 @@ test('completed workflow requests stay out of Needs you and completed sources re
     await expect(page.locator('.overview-request')).toContainText('Who is our partner?');
     await expect(page.locator('.overview-request')).not.toContainText('Historical request');
     await page.getByRole('tab', { name: 'Projects', exact: true }).click();
-    await page.locator('[data-overview-project]').click();
+    await page.locator('[data-overview-details]').click();
     await expect(page.locator('.overview-card')).toHaveCount(3);
     await expect(page.locator('.overview-list-title', { hasText: 'Waiting on partner' })).toBeVisible();
     await page.getByRole('button', { name: 'Show completed · 1' }).click();
@@ -212,12 +212,12 @@ test('Overview controls follow light and dark palettes and long requests fit nar
       });
       expect(contrastRatio(colors.inputBg, colors.inputText)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(colors.cardBg, colors.cardText)).toBeGreaterThanOrEqual(4.5);
-      await expectNeutralColors(page, ['#overviewOverlay', '.overview-rail', '#overviewSearchInput', '.overview-project', '.overview-project-icon', '.overview-signal', '.overview-current-text', '.overview-next-step', '.overview-updated']);
+      await expectNeutralColors(page, ['#overviewOverlay', '.overview-rail', '#overviewSearchInput', '.overview-project', '.overview-project-icon', '.overview-signal', '.overview-current-text', '.overview-show-details', '.overview-updated']);
       await page.locator('#overviewCloseButton').hover();
       await expect(page.locator('#sbTooltip')).toHaveAttribute('aria-hidden', 'false');
       await expectNeutralColors(page, ['#sbTooltip']);
       await page.screenshot({ path: testInfo.outputPath(`overview-${mode}-desktop.png`) });
-      await page.locator('[data-overview-project]').first().click();
+      await page.locator('[data-overview-details]').first().click();
       await page.locator('#overviewDetailBody .overview-card').first().click();
       await expect(page.locator('#modalEditCard')).toBeVisible();
       await expectNeutralColors(page, ['#modalEditCard', '#cardEditorTitle', '#cardEditorOverType .overtype-input', '#cardEditorClose']);
@@ -272,7 +272,7 @@ test('Now grid responds to window width, keeps board order through updates and r
     }
     for (const width of [1500, 560]) {
       await page.setViewportSize({ width, height: 900 });
-      const opener = page.locator('.overview-project [data-overview-project]').first();
+      const opener = page.locator('.overview-project [data-overview-details]').first();
       await opener.focus();
       await opener.press('Enter');
       await expect(page.locator('#overviewProjectDetail')).toBeVisible();

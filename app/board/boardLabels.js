@@ -7,31 +7,32 @@ const BOARD_LABEL_COLOR_PALETTE = [
   { colorLight: '#f97316', colorDark: '#c2410c' },
 ];
 
+// Tailwind CSS v3.4 Neutral tokens; named board schemes remain independent.
 const DEFAULT_BOARD_THEME_BACKGROUNDS = Object.freeze({
-  light: '#f7f7f7',
-  dark: '#191919',
+  light: '#fafafa',
+  dark: '#171717',
 });
 
 const DEFAULT_BOARD_THEME_PALETTES = Object.freeze({
   light: Object.freeze({
-    boardBackground: '#f7f7f7',
+    boardBackground: '#fafafa',
     surface: '#ffffff',
-    text: '#202020',
-    muted: '#626262',
-    border: '#dedede',
-    accent: '#303030',
+    text: '#171717',
+    muted: '#525252',
+    border: '#d4d4d4',
+    accent: '#262626',
     accentText: '#ffffff',
     shadow: 'rgba(0, 0, 0, .04)',
     shadowCard: 'rgba(0, 0, 0, .06)',
   }),
   dark: Object.freeze({
-    boardBackground: '#191919',
-    surface: '#242424',
-    text: '#f2f2f2',
-    muted: '#b8b8b8',
-    border: '#424242',
-    accent: '#e0e0e0',
-    accentText: '#202020',
+    boardBackground: '#171717',
+    surface: '#262626',
+    text: '#f5f5f5',
+    muted: '#a3a3a3',
+    border: '#525252',
+    accent: '#e5e5e5',
+    accentText: '#171717',
     shadow: 'rgba(0, 0, 0, 0.45)',
     shadowCard: 'rgba(0, 0, 0, 0.55)',
   }),
@@ -236,24 +237,24 @@ const COLOR_SCHEMES = [
     id: 'default',
     name: 'Default',
     light: {
-      boardBackground: '#f7f7f7',
+      boardBackground: '#fafafa',
       surface:         '#ffffff',
-      text:            '#202020',
-      muted:           '#626262',
-      border:          '#dedede',
-      accent:          '#303030',
+      text:            '#171717',
+      muted:           '#525252',
+      border:          '#d4d4d4',
+      accent:          '#262626',
       accentText:      '#ffffff',
       shadow:          'rgba(0, 0, 0, .04)',
       shadowCard:      'rgba(0, 0, 0, .06)',
     },
     dark: {
-      boardBackground: '#191919',
-      surface:         '#242424',
-      text:            '#f2f2f2',
-      muted:           '#b8b8b8',
-      border:          '#424242',
-      accent:          '#e0e0e0',
-      accentText:      '#202020',
+      boardBackground: '#171717',
+      surface:         '#262626',
+      text:            '#f5f5f5',
+      muted:           '#a3a3a3',
+      border:          '#525252',
+      accent:          '#e5e5e5',
+      accentText:      '#171717',
       shadow:          'rgba(0, 0, 0, 0.45)',
       shadowCard:      'rgba(0, 0, 0, 0.55)',
     },
@@ -1844,6 +1845,14 @@ function deriveAccentColor(backgroundColor, themeMode, isBackgroundDark) {
 function deriveThemePalette(themeMode, backgroundColor) {
   const defaults = DEFAULT_BOARD_THEME_PALETTES[themeMode] || DEFAULT_BOARD_THEME_PALETTES.light;
   const boardBackground = normalizeHexColor(backgroundColor, defaults.boardBackground);
+  // Previously saved default backgrounds should follow the current neutral theme,
+  // without rewriting board settings or deriving a saturated accent from gray.
+  const previousDefaultBackgrounds = themeMode === 'dark'
+    ? ['#091102', '#191919']
+    : ['#f7f8fa', '#f7f7f7'];
+  if (boardBackground === defaults.boardBackground || previousDefaultBackgrounds.includes(boardBackground)) {
+    return { ...defaults };
+  }
   const backgroundLuminance = getRelativeLuminance(boardBackground);
   const isBackgroundDark = backgroundLuminance < 0.42;
   let adjustedForReadability = false;
@@ -2357,6 +2366,8 @@ async function cycleBoardColorSchemeFromShortcut() {
 
 function applyDerivedBoardThemes(themeOverrides, options = {}) {
   const state = getBoardLabelState();
+  // A board with no valid scheme must not retain the previous board's scheme.
+  setBoardColorScheme('');
   const normalized = normalizeThemeOverrides(themeOverrides);
   setBoardThemeOverrides(normalized);
 
