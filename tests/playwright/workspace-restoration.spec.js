@@ -51,6 +51,12 @@ test('first launch restores five trusted project boards from persisted workspace
     expect(persisted.openBoardRoots).toEqual(boards);
     await page.locator('#workspaceViewOverview').click();
     await expect(page.locator('.overview-project')).toHaveCount(5);
+    await expect(page.locator('.overview-card')).toHaveCount(0);
+    await page.setViewportSize({ width: 1000, height: 800 });
+    expect(await page.locator('#overviewBody').evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('restored-five-projects-compact.png') });
+    for (const toggle of await page.locator('[data-overview-expand]').all()) await toggle.click();
+    for (const toggle of await page.locator('.overview-completed-toggle').all()) await toggle.click();
     await expect(page.locator('.overview-card')).toHaveCount(15);
     await expect(page.locator('#overviewCount')).toHaveText('5 projects · 15 cards');
     await expect(page.locator('#overviewBody')).not.toContainText('Untrusted Project');

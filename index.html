@@ -47,11 +47,16 @@
     <div class="overview-header">
       <div><h2 id="overviewTitle">Overview</h2><span id="overviewCount" class="overview-count" aria-live="polite"></span></div>
       <div class="overview-header-controls">
-        <input id="overviewSearchInput" type="search" placeholder="Search all projects" aria-label="Search project, list, title or notes">
+        <input id="overviewSearchInput" type="search" placeholder="Search all projects" aria-label="Search projects, goals, requests, cards or notes">
         <button id="overviewCloseButton" type="button" title="Close Overview" aria-label="Close Overview"><i data-feather="x"></i></button>
       </div>
     </div>
+    <div class="overview-tabs" role="tablist" aria-label="Overview views">
+      <button id="overviewProjectsTab" type="button" role="tab" aria-selected="true" aria-controls="overviewBody">Projects</button>
+      <button id="overviewNeedsYouTab" type="button" role="tab" aria-selected="false" aria-controls="overviewBody">Needs you</button>
+    </div>
     <div id="overviewBody" class="overview-body"></div>
+    <section id="overviewCoordinationPanel" class="overview-coordination-panel hidden" aria-label="Edit coordination"></section>
   </section>
 
   <section id="plannerOverlay" class="planner-overlay hidden" aria-hidden="true" aria-labelledby="plannerTitle">

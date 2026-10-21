@@ -33,6 +33,8 @@ Use this skill when the user asks to read or modify Signboard data through MCP.
 6. Execute write tool only after checks:
    - `signboard_create_card`
    - `signboard_update_card`
+   - `signboard_update_project_brief`
+   - `signboard_update_card_coordination`
    - `signboard_duplicate_card`
    - `signboard_archive_card`
    - `signboard_archive_list`
@@ -71,7 +73,10 @@ Use this skill when the user asks to read or modify Signboard data through MCP.
 - `signboard_create_board`: scaffold the default lists and optional starter card under an allowed parent root.
 - `signboard_list_lists`: get list directory names in a board.
 - `signboard_list_cards`: get card markdown files in a list.
-- `signboard_read_card`: return normalized frontmatter and body.
+- `signboard_read_card`: return normalized frontmatter, body, timestamps, revision, and coordination.
+- `signboard_read_project_brief`: read optional board goal/next step and revision without creating a sidecar; missing revision is `missing`.
+- `signboard_update_project_brief`: write `patch: {goal, nextStep}` with a fresh `expectedRevision`, preserving unknown metadata/body. Both fields have a 500-character limit.
+- `signboard_update_card_coordination`: write camelCase `patch` fields `workStatus`, `attention`, `request`, `nextStep`, `evidence`, `summary` using exact board/list/card identifiers and a fresh `expectedRevision`; never accepts human `response`.
 - `signboard_create_card`: create a card from title/body/optional start/due/labels, with dry-run preview support.
 - `signboard_update_card`: patch title/body/start/due/labels of a card, including section edits, note insertion, label add/remove/clear, and dry-run previews. Whole-body replacement requires `expectedRevision`; stale preconditions reject without writing.
 - `signboard_duplicate_card`: duplicate an existing card with optional title/body/start/due override, label add/remove/clear, and dry-run preview.
@@ -90,6 +95,14 @@ Use this skill when the user asks to read or modify Signboard data through MCP.
 - `signboard_import_trello`: import a Trello JSON export into an existing board.
 - `signboard_import_obsidian`: import one or more Markdown files/directories into an existing board.
 - `signboard_import_tasksmd`: import a Tasks.md project into an existing board.
+
+## Human coordination
+
+- Read the project brief and relevant card before coordinating. Never invent missing goals or infer custom-list work status. Legacy cards read as idle/none/empty without migration.
+- Use `workStatus: idle|working|blocked` and `attention: none|decision|question|review`. Attention other than none requires a clear nonempty `request` for an actual human action. Evidence is optional.
+- Card `nextStep` allows 500 characters; request/evidence/summary each allow 2000. Unknown patch fields, invalid values, missing revisions, and stale revisions are rejected. Coordination tools require write mode and have no dry-run option.
+- A human responds through the desktop app. Agents cannot set response; ordinary status/summary/evidence updates preserve the human response, and a genuinely new request clears it. Keep card list and completion state tied to actual work; human response only clears attention.
+- Coordination properties are optional flat `sb_*` card metadata; the optional `.signboard-project.md` sidecar has `signboard_project: 1`. Reads never create it. Malformed/unrecognized sidecars fail without overwriting them. These writes use the shared board locks and content revisions.
 
 ## Output Style
 

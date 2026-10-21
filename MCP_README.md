@@ -51,6 +51,31 @@ Locks recover a dead owner on the next attempt; live owners time out after ten s
 
 These guarantees require cooperating writers on a local filesystem with atomic hard links and renames. Other editors can ignore locks and change a file between the revision check and replacement. Board-directory renames/moves retain the lock through metadata reconciliation; rediscover the board and card paths afterward. Coordinate bulk imports from outside this fork and edits from older Signboard versions while agents are writing. Revisions are content hashes, not a persistent edit history or automatic merge system.
 
+## Project coordination and human requests
+
+Overview shows project goals and next steps from an optional `.signboard-project.md` board-root sidecar. `signboard_read_project_brief` takes `boardRoot` and returns `goal`, `nextStep`, `revision`, and `updatedAt`; a missing file returns empty strings and revision `missing` without creating anything. `signboard_update_project_brief` takes `boardRoot`, `patch: {goal, nextStep}`, and `expectedRevision` from a fresh read. Both text fields are limited to 500 characters. Existing files must have YAML frontmatter with `signboard_project: 1`; malformed or unrecognized files fail visibly, preserving their bytes. Writes preserve unknown metadata and body notes.
+
+`signboard_read_card` also returns `card.coordination` alongside the original flat frontmatter. Use `signboard_update_card_coordination` with exact `boardRoot`, `listName`, `cardFile`, a fresh `expectedRevision`, and a camelCase `patch`:
+
+```json
+{
+  "boardRoot": "/Users/you/Documents/Boards/Launch Plan",
+  "listName": "001-Doing-stock",
+  "cardFile": "001-draft-announcement-ab123.md",
+  "expectedRevision": "sha256:...from read_card...",
+  "patch": {
+    "workStatus": "blocked",
+    "attention": "decision",
+    "request": "Which launch date should the announcement use?",
+    "nextStep": "Apply the approved date to the draft"
+  }
+}
+```
+
+`workStatus` accepts `idle`, `working`, or `blocked`; `attention` accepts `none`, `decision`, `question`, or `review`. An active attention request requires nonempty `request`. `nextStep` allows 500 characters; `request`, `evidence`, and `summary` each allow 2000. Evidence is optional. Reads of legacy cards default to idle/none/empty and do not migrate them. Coordination is stored as optional flat `sb_work_status`, `sb_attention`, `sb_request`, `sb_next_step`, `sb_evidence`, `sb_summary`, `sb_response`, and `sb_updated_at` properties. Meaningful updates record an ISO timestamp.
+
+Only request attention when the human must decide, answer, or review something. Preserve source lists and actual work status; a response does not move a card or mark work complete. The desktop response action records the human's response and clears attention. Agents cannot write `response`; status, summary, and evidence updates preserve an existing response, while a genuinely new attention request clears it. Coordination tools do not support dry-run writes and require write mode. Missing/stale revisions return the same `REVISION_REQUIRED`/`REVISION_CONFLICT` details as card writes, with no bytes changed. Reread and merge before retrying. Canonical root validation includes sidecar and card symlink targets.
+
 ## Security defaults
 
 By default, the server starts in read-only mode.
@@ -140,6 +165,9 @@ The server currently exposes these tools:
 - `signboard_create_board` (write mode only)
 - `signboard_list_lists`
 - `signboard_list_cards`
+- `signboard_read_project_brief` (read optional project goal/next step without creating a file)
+- `signboard_update_project_brief` (write mode only; fresh `expectedRevision` required)
+- `signboard_update_card_coordination` (write mode only; fresh card revision required; human responses excluded)
 - `signboard_read_card` (includes `timestamps`, `taskSummary`, `taskStartDates`, and `taskDueDates`)
 - `signboard_create_card` (writes require write mode; supports read-only `dryRun` previews)
 - `signboard_update_card` (writes require write mode; supports section edits, note insertion, label operations, and read-only `dryRun` previews)

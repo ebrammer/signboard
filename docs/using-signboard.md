@@ -520,3 +520,11 @@ You can also open the shortcut helper from `Help > Keyboard Shortcuts`.
 - Use labels for durable categories and use lists for workflow stages.
 - Archive aggressively. The archive browser makes restoring easy.
 - If you want automation or scripting, pair this guide with [Signboard CLI](./signboard-cli.md) or [MCP Server](../MCP_README.md).
+
+## Keep the big picture nearby
+
+Open **Overview** for compact summaries of your open projects. Set each project’s goal and next step, expand its row for the original board lists, and reveal completed lists when needed. Search still finds card titles and notes, including completed work.
+
+**Needs you** brings together explicit questions, decisions and review requests. A blocked card does not automatically need your attention: the agent must describe what it needs from you. Open the request, inspect its evidence, and send a response. Sending a response clears that request; it does not mark the task done. Card coordination controls let you set the same information yourself.
+
+If a card or project summary changed while you were editing, your draft remains visible. Read the latest saved content and reconcile before retrying. The app does not invent missing project goals, completion evidence, or agent activity.

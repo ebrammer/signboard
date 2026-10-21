@@ -4,6 +4,8 @@ const path = require('path');
 const vm = require('vm');
 
 const context = vm.createContext({ window: {}, console, Date, Promise });
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../shared/projectCoordination.js'), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(__dirname, '../app/board/boardLabels.js'), 'utf8'), context);
 for (const file of ['boardSnapshot.js', 'boardViews.js', 'plannerView.js', 'overviewView.js']) {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../app/board', file), 'utf8'), context);
 }
@@ -33,6 +35,21 @@ for (const query of ['Research Ada', 'Waiting partner', 'Undated', 'retain histo
   assert.equal(context.filterOverviewProjects([project], query)[0].visibleCount, 1, query);
 }
 assert.equal(context.filterOverviewProjects([project], 'missing').length, 0);
+const coordinated = context.buildOverviewProject('/research/', { ...snapshot, boardSettings: { workflow: { completedListNames: ['001-Released-stock'] } }, lists: [
+  { listName: '000-Doing-stock', listPath: '/research/doing', cards: [
+    { frontmatter: { title: 'Legacy active' }, body: '' },
+    { frontmatter: { title: 'Explicit idle', sb_work_status: 'idle' }, body: '' },
+    { frontmatter: { title: 'Review please', sb_attention: 'review', sb_request: 'Pick the draft', sb_evidence: 'Preview A' }, body: '' },
+  ] },
+  { listName: '001-Released-stock', listPath: '/research/released', cards: [{ frontmatter: { title: 'Old request', sb_work_status: 'working', sb_attention: 'review', sb_request: 'Skip' }, body: '' }] },
+  { listName: '002-Custom working-stock', listPath: '/research/custom', cards: [{ frontmatter: { title: 'Custom is not activity' }, body: '' }] },
+] }, { goal: 'Make reading easier', nextStep: 'Review layout' });
+assert.equal(coordinated.active.length, 2, 'fallback applies only to conventional Doing/In progress and does not override explicit idle');
+assert.equal(coordinated.requests.length, 1, 'completed workflow requests are excluded');
+assert.equal(coordinated.lists[1].isCompletedList, true);
+assert.equal(context.filterOverviewProjects([coordinated], 'reading easier').length, 1, 'project goal is searchable');
+assert.equal(context.filterOverviewProjects([coordinated], 'Preview A')[0].visibleCount, 1, 'request evidence is searchable');
+assert.equal(context.filterOverviewProjects([coordinated], 'Old request')[0].visibleCount, 1, 'completed sources remain searchable');
 const partial = context.buildOverviewProject('/research/', { ...snapshot, errors: [{ path: 'unreadable.md' }] });
 assert.equal(partial.error, true);
 assert.equal(context.filterOverviewProjects([partial], 'missing')[0].error, true, 'read failures must remain visible during search');
@@ -41,8 +58,8 @@ context.window.__overviewState = { isOpen: true };
 assert.equal(context.getActiveWorkspaceView(), 'overview');
 
 (async () => {
-  context.window.board = { readBoardSnapshot: async (root, options) => {
-    assert.equal(options.includeBoardSettings, false);
+  context.window.board = { readProjectBrief: async () => ({ goal: '', nextStep: '', revision: 'missing' }), readBoardSnapshot: async (root, options) => {
+    assert.equal(options.includeBoardSettings, true);
     if (root === '/missing/') throw new Error('denied');
     return snapshot;
   }, listLists: async () => { throw new Error('denied'); } };
@@ -69,6 +86,7 @@ assert.equal(context.getActiveWorkspaceView(), 'overview');
   assert.equal(restored, 0);
   assert.equal(context.window.boardRoot, '/research/');
   assert.equal(context.window.__plannerViewState.cardContext.boardRoot, '/original/');
+  context.closeBoardLabelFilterPopover = () => {};
   await assert.rejects(context.switchWorkspaceView('table'), /Unsaved conflict/);
   assert.equal(context.isOverviewOpen(), true);
   console.log('Overview regression checks passed.');

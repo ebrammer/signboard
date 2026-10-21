@@ -51,6 +51,9 @@ test('Overview preserves custom workflows, searches all projects, edits source c
     await page.locator('#workspaceViewOverview').click();
     await expect(page.locator('#overviewOverlay')).toBeVisible();
     await expect(page.locator('.overview-project')).toHaveCount(2);
+    await expect(page.locator('.overview-card')).toHaveCount(0);
+    for (const toggle of await page.locator('[data-overview-expand]').all()) await toggle.click();
+    for (const toggle of await page.locator('.overview-completed-toggle').all()) await toggle.click();
     await expect(page.locator('.overview-card')).toHaveCount(6);
     await expect(page.locator('.overview-list-title', { hasText: 'Waiting on reviewer' })).toHaveText('Waiting on reviewer · 1');
     await expect(page.locator('#overviewCount')).toHaveText('2 projects · 6 cards');

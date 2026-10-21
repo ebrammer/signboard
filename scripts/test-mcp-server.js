@@ -401,6 +401,9 @@ async function runForTransport(transportMode, fixture) {
     'signboard_list_lists',
     'signboard_list_cards',
     'signboard_read_card',
+    'signboard_read_project_brief',
+    'signboard_update_project_brief',
+    'signboard_update_card_coordination',
     'signboard_create_card',
     'signboard_update_card',
     'signboard_duplicate_card',
@@ -1543,6 +1546,129 @@ async function runTrustedRootsSmoke() {
   }
 }
 
+async function runCoordinationSmoke(readOnly) {
+  const assert = require('assert');
+  const fixture = await createFixtureBoard();
+  const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'signboard-mcp-outside-'));
+  const userData = path.join(fixture.cleanupRoot, 'isolated-user-data');
+  await fs.mkdir(userData);
+  const child = spawn(process.execPath, [MCP_ENTRY_PATH], {
+    cwd: path.resolve(__dirname, '..'),
+    env: { ...process.env, SIGNBOARD_MCP_ALLOWED_ROOTS: fixture.boardRoot, SIGNBOARD_MCP_READ_ONLY: String(readOnly), SIGNBOARD_DESKTOP_USER_DATA_DIR: userData },
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  let buffer = Buffer.alloc(0);
+  let stderr = '';
+  let id = 0;
+  const pending = new Map();
+  const exited = new Promise((resolve) => child.once('exit', resolve));
+  child.stderr.on('data', (data) => { stderr += data; });
+  child.stdout.on('data', (data) => {
+    buffer = readNdjsonFrames(Buffer.concat([buffer, data]), (frame) => {
+      const entry = pending.get(frame.id);
+      if (entry) { pending.delete(frame.id); clearTimeout(entry.timer); entry.resolve(frame); }
+    });
+  });
+  const rpc = (method, params) => new Promise((resolve, reject) => {
+    const requestId = ++id;
+    const timer = setTimeout(() => reject(new Error(`Coordination MCP timeout ${method}: ${stderr}`)), 5000);
+    pending.set(requestId, { resolve, timer });
+    child.stdin.write(encodeMessage({ jsonrpc: '2.0', id: requestId, method, params }, NDJSON_TRANSPORT));
+  });
+  const call = async (name, args) => (await rpc('tools/call', { name, arguments: args })).result;
+  const target = { boardRoot: fixture.boardRoot, listName: fixture.workingList, cardFile: fixture.workingCardFile };
+  const cardPath = path.join(target.boardRoot, target.listName, target.cardFile);
+  const briefPath = path.join(target.boardRoot, '.signboard-project.md');
+  try {
+    await rpc('initialize', { protocolVersion: '2025-11-25' });
+    const tools = (await rpc('tools/list')).result.tools;
+    const schema = tools.find((tool) => tool.name === 'signboard_update_card_coordination').inputSchema;
+    assert.strictEqual(schema.additionalProperties, false);
+    assert.strictEqual(schema.properties.patch.additionalProperties, false);
+    assert.strictEqual(schema.properties.patch.properties.response, undefined);
+    assert(schema.required.includes('expectedRevision'));
+    let result = await call('signboard_read_project_brief', { boardRoot: target.boardRoot });
+    assert.strictEqual(result.structuredContent.revision, 'missing');
+    assert.strictEqual(await fs.stat(briefPath).catch(() => null), null);
+    let card = (await call('signboard_read_card', target)).structuredContent.card;
+    assert.strictEqual(card.coordination.attention, 'none');
+    assert.strictEqual(card.coordination.workStatus, 'idle');
+    const originalCardBytes = await fs.readFile(cardPath);
+    result = await call('signboard_update_project_brief', { boardRoot: target.boardRoot, patch: { goal: 'Real goal' }, expectedRevision: 'missing' });
+    if (readOnly) {
+      assert.strictEqual(result.isError, true);
+      assert.match(result.structuredContent.error, /read.only/i);
+      result = await call('signboard_update_card_coordination', { ...target, patch: { summary: 'Not allowed' }, expectedRevision: card.revision });
+      assert.strictEqual(result.isError, true);
+      assert.match(result.structuredContent.error, /read.only/i);
+      assert.deepStrictEqual(await fs.readFile(cardPath), originalCardBytes);
+      assert.strictEqual(await fs.stat(briefPath).catch(() => null), null);
+    } else {
+      assert.strictEqual(result.structuredContent.goal, 'Real goal');
+      const savedBrief = await fs.readFile(briefPath);
+      result = await call('signboard_update_project_brief', { boardRoot: target.boardRoot, patch: { goal: 'Stale' }, expectedRevision: 'missing' });
+      assert.strictEqual(result.structuredContent.details.code, 'REVISION_CONFLICT');
+      assert.deepStrictEqual(await fs.readFile(briefPath), savedBrief);
+      result = await call('signboard_update_card_coordination', { ...target, patch: { workStatus: 'working' } });
+      assert.strictEqual(result.structuredContent.details.code, 'REVISION_REQUIRED');
+      for (const patch of [{ response: 'Forged human answer' }, { attention: 'decision' }, { summary: 'x'.repeat(2001) }, { workStatus: 'completed' }]) {
+        result = await call('signboard_update_card_coordination', { ...target, patch, expectedRevision: card.revision });
+        assert.strictEqual(result.isError, true);
+        assert.deepStrictEqual(await fs.readFile(cardPath), originalCardBytes);
+      }
+      result = await call('signboard_update_card_coordination', { ...target, patch: { summary: 'Valid' }, response: 'Forged', expectedRevision: card.revision });
+      assert.strictEqual(result.isError, true);
+      assert.deepStrictEqual(await fs.readFile(cardPath), originalCardBytes);
+      result = await call('signboard_update_card_coordination', { ...target, patch: { workStatus: 'blocked', attention: 'question', request: 'Which option?' }, expectedRevision: card.revision });
+      assert.strictEqual(result.structuredContent.card.coordination.request, 'Which option?');
+      assert.strictEqual(result.structuredContent.card.coordination.evidence, '');
+      assert.notStrictEqual(result.structuredContent.card.revision, card.revision);
+      const afterRequest = await fs.readFile(cardPath);
+      result = await call('signboard_update_card_coordination', { ...target, patch: { summary: 'Stale' }, expectedRevision: card.revision });
+      assert.strictEqual(result.structuredContent.details.code, 'REVISION_CONFLICT');
+      assert.deepStrictEqual(await fs.readFile(cardPath), afterRequest);
+      card = (await call('signboard_read_card', target)).structuredContent.card;
+      assert.strictEqual(card.frontmatter.sb_attention, 'question');
+      assert.strictEqual(card.coordination.request, 'Which option?');
+      assert.strictEqual(await fs.stat(cardPath).then(() => true), true, 'coordination never moves a card');
+      await fs.unlink(briefPath);
+      await fs.writeFile(briefPath, 'Unrecognized personal note.\n');
+      result = await call('signboard_read_project_brief', { boardRoot: target.boardRoot });
+      assert.strictEqual(result.isError, true);
+      result = await call('signboard_update_project_brief', { boardRoot: target.boardRoot, patch: { goal: 'Overwrite' }, expectedRevision: 'missing' });
+      assert.strictEqual(result.isError, true);
+      assert.strictEqual(await fs.readFile(briefPath, 'utf8'), 'Unrecognized personal note.\n');
+      await fs.unlink(briefPath);
+    }
+    const external = path.join(outside, 'private.md');
+    await fs.writeFile(external, '---\nsignboard_project: 1\ngoal: Private\n---\n');
+    const privateBytes = await fs.readFile(external);
+    await fs.symlink(external, briefPath);
+    result = await call('signboard_read_project_brief', { boardRoot: target.boardRoot });
+    assert.strictEqual(result.isError, true);
+    assert.match(result.structuredContent.error, /outside/);
+    if (!readOnly) {
+      result = await call('signboard_update_project_brief', { boardRoot: target.boardRoot, patch: { goal: 'Escape' }, expectedRevision: 'missing' });
+      assert.strictEqual(result.isError, true);
+      const escapeName = '099-escape-abcde.md';
+      await fs.symlink(external, path.join(target.boardRoot, target.listName, escapeName));
+      result = await call('signboard_update_card_coordination', { ...target, cardFile: escapeName, patch: { summary: 'Escape' }, expectedRevision: 'missing' });
+      assert.strictEqual(result.isError, true);
+      assert.match(result.structuredContent.error, /outside/);
+    }
+    result = await call('signboard_read_project_brief', { boardRoot: outside });
+    assert.strictEqual(result.isError, true);
+    assert.match(result.structuredContent.error, /outside/);
+    assert.deepStrictEqual(await fs.readFile(external), privateBytes);
+  } finally {
+    child.stdin.end();
+    await exited;
+    for (const entry of pending.values()) clearTimeout(entry.timer);
+    await fs.rm(fixture.cleanupRoot, { recursive: true, force: true });
+    await fs.rm(outside, { recursive: true, force: true });
+  }
+}
+
 async function run() {
   assertHeadlessMcpLaunchConfig();
   await assertMcpEntrypointIsPackaged();
@@ -1559,6 +1685,8 @@ async function run() {
 
   await runRequiresAllowedRootsSmoke();
   await runTrustedRootsSmoke();
+  await runCoordinationSmoke(true);
+  await runCoordinationSmoke(false);
 
   console.log('MCP server smoke test passed (header + header-bom + ndjson).');
 }

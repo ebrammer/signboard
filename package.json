@@ -1,7 +1,7 @@
 {
   "name": "signboard",
   "productName": "Syllabi Signboard",
-  "version": "1.7.4-syllabi.1",
+  "version": "1.7.4-syllabi.2",
   "description": "A fast, local-first Kanban board for Markdown files.",
   "homepage": "https://github.com/ebrammer/signboard",
   "repository": {
@@ -111,7 +111,8 @@
     "test:build-info": "node scripts/test-build-info.js",
     "test:overview": "node scripts/test-overview.js",
     "test:safe-card-updates": "node scripts/test-safe-card-updates.js",
-    "test:fork-identity": "node scripts/test-fork-identity.js"
+    "test:fork-identity": "node scripts/test-fork-identity.js",
+    "test:project-coordination": "node scripts/test-project-coordination.js"
   },
   "devDependencies": {
     "@fiahfy/icns": "^0.0.7",

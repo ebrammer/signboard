@@ -636,3 +636,7 @@ Ignore these unless task explicitly requires them:
 See `FORK.md` for the separate application identity, profile adoption and rollback, compatible board format, and disabled upstream binary updater. `lib/forkIdentity.js` defines the application/profile name and update policy.
 
 Overview lives in `app/board/overviewView.js`, aggregates existing batched snapshots from open boards, and reuses the Planner source-board editor context. `lib/cardRevision.js` and `lib/fileTransaction.js` supply content revisions and cross-process write serialization. Keep Overview, safe-write, and editor-conflict regressions aligned when modifying these paths.
+
+## Human-first coordination
+
+Overview starts with concise project rows and expands existing source lists on demand. Needs you is a queue of explicit unfinished-card decisions, questions and review requests. Project goal/next step data uses an optional `.signboard-project.md` sidecar; card requests, updates and replies use optional flat `sb_*` frontmatter. The desktop and MCP share validated revision-protected operations. Replying clears attention without changing workflow position. Reads of legacy boards do not create coordination metadata.

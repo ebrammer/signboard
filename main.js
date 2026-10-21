@@ -26,6 +26,7 @@ const {
   reorderListDirectories,
 } = require('./lib/cardOrdering');
 const { readBoardSnapshot } = require('./lib/boardSnapshot');
+const projectCoordination = require('./lib/projectCoordination');
 const { prepareNewCardFrontmatter } = require('./lib/cardLifecycle');
 const {
   archiveCard,
@@ -2664,6 +2665,10 @@ function createWindow() {
             document.querySelector('#workspaceViewOverview svg'), 'Renderer initialization / persisted fixture restore');
           const restoredBoardRoot = normalizeRoot(window.boardRoot);
           document.getElementById('workspaceViewOverview').click();
+          await waitFor(() => document.querySelectorAll('#overviewBody [data-overview-expand]').length === expected.boards.length,
+            'Compact Overview project rows');
+          for (const toggle of document.querySelectorAll('#overviewBody [data-overview-expand]')) toggle.click();
+          for (const toggle of document.querySelectorAll('#overviewBody .overview-completed-toggle')) toggle.click();
           await waitFor(() => {
             const overlay = document.getElementById('overviewOverlay');
             const titles = Array.from(document.querySelectorAll('#overviewBody .overview-card-title')).map(node => node.textContent.trim());
@@ -4330,6 +4335,34 @@ async function handleBoardCall(event, payload = {}) {
       return readBoardSnapshot(boardRoot, options);
     }
 
+    case 'readProjectBrief': {
+      const boardRoot = requireReadableBoardRoot(event.sender, args[0]);
+      return projectCoordination.readProjectBrief(boardRoot);
+    }
+
+    case 'updateProjectBrief': {
+      const boardRoot = requireWritableBoardRoot(event.sender, args[0], { allowTrusted: true });
+      try {
+        return await projectCoordination.updateProjectBrief(boardRoot, args[1], args[2]);
+      } catch (error) {
+        if (error.details) return { ok: false, error: error.message, details: error.details };
+        throw error;
+      }
+    }
+
+    case 'updateCardCoordination':
+    case 'respondToCardRequest': {
+      const filePath = requireWritablePath(event.sender, args[0], { allowTrusted: true });
+      const boardRoot = resolveTrustedBoardRootForPath(event.sender, filePath);
+      if (!boardRoot) throw new Error('UNAUTHORIZED_BOARD_ROOT');
+      try {
+        return await projectCoordination[operation](boardRoot, filePath, args[1], args[2]);
+      } catch (error) {
+        if (error.details) return { ok: false, error: error.message, details: error.details };
+        throw error;
+      }
+    }
+
     case 'startBoardWatch':
       return startBoardWatchForSender(event.sender, args[0]);
 
@@ -4884,7 +4917,7 @@ async function handleBoardCall(event, payload = {}) {
 }
 
 ipcMain.handle('board-call', async (event, payload = {}) => {
-  const cardMutations = new Set(['writeCard', 'updateFrontmatter', 'createCard', 'addLinkedObject', 'addDroppedLinkedObjects', 'recreateLinkedObsidianNote', 'relinkLinkedObsidianNote', 'copyCardObsidianUri', 'copyCardSignboardUri', 'getCardExternalLinks', 'createLinkedObsidianNote', 'archiveCard', 'archiveList', 'restoreArchivedCard', 'restoreArchivedList', 'recordCardListMove', 'reorderCardsInList', 'orderCardsByDueDate', 'reorderLists', 'moveCardToTop', 'moveCard', 'moveList', 'createList', 'deleteList', 'generateObsidianBase', 'openObsidianBase', 'importTrello', 'importObsidian', 'importTasksMd']);
+  const cardMutations = new Set(['updateProjectBrief', 'updateCardCoordination', 'respondToCardRequest', 'writeCard', 'updateFrontmatter', 'createCard', 'addLinkedObject', 'addDroppedLinkedObjects', 'recreateLinkedObsidianNote', 'relinkLinkedObsidianNote', 'copyCardObsidianUri', 'copyCardSignboardUri', 'getCardExternalLinks', 'createLinkedObsidianNote', 'archiveCard', 'archiveList', 'restoreArchivedCard', 'restoreArchivedList', 'recordCardListMove', 'reorderCardsInList', 'orderCardsByDueDate', 'reorderLists', 'moveCardToTop', 'moveCard', 'moveList', 'createList', 'deleteList', 'generateObsidianBase', 'openObsidianBase', 'importTrello', 'importObsidian', 'importTasksMd']);
   if (!cardMutations.has(payload.op)) return handleBoardCall(event, payload);
   const args = Array.isArray(payload.args) ? payload.args : [];
   const root = typeof args[0] === 'string'

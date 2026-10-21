@@ -26,3 +26,5 @@ The optional [Signboard MCP skill](../skills/signboard-mcp/SKILL.md) supplies a 
 People and coding agents changing the app should use the [contributor documentation](./codex/README.md), starting with [AGENTS.md](../AGENTS.md) and [CODEX.md](../CODEX.md). It covers architecture, the source map, testing, and build identity.
 
 Public contributor docs describe reusable development practices. Machine access instructions, local research, QA reports, and handoff notes stay in ignored local directories.
+
+The Syllabi fork adds a compact project Overview and a **Needs you** queue for human questions, decisions and review. See [Using Signboard](using-signboard.md) for the interaction and [MCP reference](../MCP_README.md) for agent coordination.

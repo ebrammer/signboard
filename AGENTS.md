@@ -87,3 +87,5 @@ When in doubt, follow [CODEX.md](./CODEX.md).
 ## Syllabi fork
 
 Read `FORK.md` for fork identity, compatible board adoption, and update policy. Keep existing Markdown board formats and custom workflows intact. Never upload local test evidence or personal board data.
+
+- Compact Overview and Needs you are human-facing: show explicit requests, preserve replies, and never silently move/complete cards when a request is answered. Follow CODEX.md’s project coordination contract and MCP reference.

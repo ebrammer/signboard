@@ -208,3 +208,11 @@ This map focuses on source and operational files. Large generated/vendor folders
 See `FORK.md` for the separate application identity, profile adoption and rollback, compatible board format, and disabled upstream binary updater. `lib/forkIdentity.js` defines the application/profile name and update policy.
 
 Overview lives in `app/board/overviewView.js`, aggregates existing batched snapshots from open boards, and reuses the Planner source-board editor context. `lib/cardRevision.js` and `lib/fileTransaction.js` supply content revisions and cross-process write serialization. Keep Overview, safe-write, and editor-conflict regressions aligned when modifying these paths.
+
+## Project coordination
+
+- `lib/projectCoordination.js`: optional project sidecar and safe card coordination operations.
+- `shared/projectCoordination.js`: browser/Node normalization and validation contract.
+- `app/board/overviewView.js`: compact project summaries, expanded original lists, and Needs you views.
+- `app/board/projectCoordinationView.js`: human request display, project/card coordination forms, replies and stale-draft recovery.
+- Coordination controls/tests accompany the Overview; keep dirty drafts separate from snapshot rerenders.

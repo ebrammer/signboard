@@ -527,3 +527,5 @@ Checklist items may also contain start and due dates in the body:
 ```
 
 Task due dates participate in CLI due-date filtering. Start/scheduled task dates are returned in JSON metadata for agents and used by the desktop Planner/date-filter views. Use `--task-status open` to limit task due matches to unchecked items, or `--task-status any` to include checked task due markers when you want historical matches.
+
+Project summaries and human-attention requests are available through the desktop and the dedicated MCP coordination tools documented in `MCP_README.md`. Existing CLI card operations preserve their optional `sb_*` metadata; no new CLI coordination commands are introduced in this slice.

@@ -51,7 +51,7 @@ async function checkHeadlessEntrypoints(executablePath, tempRoot) {
   assert.equal(server.env.ELECTRON_RUN_AS_NODE, '1');
   await new Promise((resolve, reject) => {
     const child = spawn(server.command, server.args, { env, stdio: ['pipe', 'pipe', 'pipe'] });
-    let output = ''; let stderr = ''; let initialized = false;
+    let output = ''; let stderr = ''; let initialized = false; let toolsVerified = false;
     const timer = setTimeout(() => {
       child.kill('SIGKILL');
       reject(new Error('Packaged MCP initialization timed out.'));
@@ -60,18 +60,29 @@ async function checkHeadlessEntrypoints(executablePath, tempRoot) {
     child.stderr.on('data', (chunk) => { stderr += chunk; });
     child.stdout.on('data', (chunk) => {
       output += chunk;
-      if (!output.includes('\n') || initialized) return;
-      try {
-        const message = JSON.parse(output.slice(0, output.indexOf('\n')));
-        assert.equal(message.id, 1);
-        assert.equal(message.result?.serverInfo?.version, packageJson.version);
-        initialized = true;
-        child.stdin.end();
-      } catch (error) { child.kill('SIGKILL'); clearTimeout(timer); reject(error); }
+      while (output.includes('\n')) {
+        const end = output.indexOf('\n');
+        const line = output.slice(0, end); output = output.slice(end + 1);
+        try {
+          const message = JSON.parse(line);
+          if (message.id === 1) {
+            assert.equal(message.result?.serverInfo?.version, packageJson.version);
+            initialized = true;
+            child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }) + '\n');
+          } else if (message.id === 2) {
+            for (const name of ['signboard_read_project_brief', 'signboard_update_project_brief', 'signboard_update_card_coordination']) {
+              const tool = message.result?.tools?.find(item => item.name === name);
+              assert(tool, `Packaged MCP missing ${name}`);
+              if (name.includes('_update_')) assert(tool.inputSchema.required.includes('expectedRevision'));
+            }
+            toolsVerified = true; child.stdin.end();
+          }
+        } catch (error) { child.kill('SIGKILL'); clearTimeout(timer); reject(error); }
+      }
     });
     child.on('close', (code) => {
       clearTimeout(timer);
-      if (initialized && code === 0) resolve();
+      if (initialized && toolsVerified && code === 0) resolve();
       else reject(new Error(`Packaged MCP exited before clean initialization (${code}): ${stderr}`));
     });
     child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize',

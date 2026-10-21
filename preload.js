@@ -58,6 +58,12 @@ contextBridge.exposeInMainWorld('board', {
   getListDirectoryName: (filePath) => getNormalizedBaseName(filePath),
   listDirectories: async (root) => invokeBoard('listDirectories', root),
   readBoardSnapshot: async (root, options) => invokeBoard('readBoardSnapshot', root, options),
+  readProjectBrief: async (root) => invokeBoard('readProjectBrief', root),
+  // Keep revision failures as data: Electron drops custom Error properties
+  // across contextBridge. The renderer unwraps the result in its own context.
+  updateProjectBrief: async (root, patch, expectedRevision) => invokeBoard('updateProjectBrief', root, patch, expectedRevision),
+  updateCardCoordination: async (cardPath, patch, expectedRevision) => invokeBoard('updateCardCoordination', cardPath, patch, expectedRevision),
+  respondToCardRequest: async (cardPath, response, expectedRevision) => invokeBoard('respondToCardRequest', cardPath, response, expectedRevision),
   startBoardWatch: async (boardRoot) => invokeBoard('startBoardWatch', boardRoot),
   stopBoardWatch: async () => invokeBoard('stopBoardWatch'),
   getBoardWatchToken: async () => invokeBoard('getBoardWatchToken'),
