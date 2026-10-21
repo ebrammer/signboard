@@ -6,7 +6,7 @@ const vm = require('vm');
 const context = vm.createContext({ window: {}, console, Date, Promise });
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../shared/projectCoordination.js'), 'utf8'), context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../app/board/boardLabels.js'), 'utf8'), context);
-for (const file of ['boardSnapshot.js', 'boardViews.js', 'plannerView.js', 'overviewView.js']) {
+for (const file of ['boardSnapshot.js', 'boardViews.js', 'plannerView.js', 'overviewView.js', 'overviewGridView.js']) {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../app/board', file), 'utf8'), context);
 }
 context.getBoardLabelFromPath = (root) => root.split('/').filter(Boolean).pop();
@@ -50,6 +50,32 @@ assert.equal(coordinated.lists[1].isCompletedList, true);
 assert.equal(context.filterOverviewProjects([coordinated], 'reading easier').length, 1, 'project goal is searchable');
 assert.equal(context.filterOverviewProjects([coordinated], 'Preview A')[0].visibleCount, 1, 'request evidence is searchable');
 assert.equal(context.filterOverviewProjects([coordinated], 'Old request')[0].visibleCount, 1, 'completed sources remain searchable');
+// Search covers original notes beyond any displayed preview and does not mutate source order.
+const deepNotes = context.buildOverviewProject('/notes/', { ...snapshot, boardName: 'Notes', lists: [{
+  listName: '000-Custom research-stock', listPath: '/notes/custom', cards: [{
+    cardPath: '/notes/custom/deep.md', frontmatter: { title: 'Deep source' },
+    body: 'Opening paragraph. '.repeat(300) + 'Unique hidden needle at the end.',
+  }],
+}] });
+assert.equal(context.filterOverviewProjects([deepNotes], 'hidden needle')[0].visibleCount, 1);
+assert.equal(deepNotes.brief.goal, undefined, 'missing project goals stay absent');
+assert.equal(deepNotes.active.length, 0, 'custom workflow does not invent an active status');
+assert.equal(deepNotes.requests.length, 0, 'missing coordination does not invent a request');
+assert.equal(context.overviewCurrentCard(deepNotes), null, 'missing current summaries remain absent');
+assert.equal(context.overviewLatestUpdate(deepNotes), '', 'missing freshness is never fabricated');
+const timestamped = context.buildOverviewProject('/timed/', { ...snapshot, lists: [{
+  listName: '000-Custom-stock', listPath: '/timed/custom', cards: [{
+    frontmatter: { title: 'Explicit summary', sb_summary: 'Reported work' }, body: '',
+    timestamps: { updatedAt: '2026-03-01T12:00:00.000Z' },
+  }],
+}] }, { updatedAt: '2026-02-01T12:00:00.000Z' });
+assert.equal(context.overviewCurrentCard(timestamped).coordination.summary, 'Reported work');
+assert.equal(context.overviewLatestUpdate(timestamped), '2026-03-01T12:00:00.000Z');
+const ordered = [project, deepNotes, { ...coordinated, boardRoot: '/coordinated/' }];
+const roots = ordered.map((entry) => entry.boardRoot);
+context.filterOverviewProjects(ordered, 'research');
+assert.deepEqual(ordered.map((entry) => entry.boardRoot), roots, 'search preserves saved board order');
+assert.equal(deepNotes.lists[0].cards[0].body.endsWith('Unique hidden needle at the end.'), true);
 const partial = context.buildOverviewProject('/research/', { ...snapshot, errors: [{ path: 'unreadable.md' }] });
 assert.equal(partial.error, true);
 assert.equal(context.filterOverviewProjects([partial], 'missing')[0].error, true, 'read failures must remain visible during search');

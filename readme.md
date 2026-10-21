@@ -403,4 +403,4 @@ Signboard includes the following open source libraries:
 - [Feather Icons](https://github.com/feathericons/feather) – [MIT License](https://github.com/feathericons/feather/blob/master/LICENSE)
 - [fDatepicker](https://github.com/liedekef/fdatepicker) – [MIT License](https://github.com/liedekef/fdatepicker/blob/master/LICENSE.md)
 
-The Syllabi fork’s Overview provides compact project summaries and a **Needs you** queue. Goals, next steps, agent requests and your responses stay local alongside the existing Markdown boards. See [FORK.md](FORK.md).
+The Syllabi fork’s Overview provides a responsive Now project grid and a **Needs you** queue. Goals, next steps, agent requests and your responses stay local alongside the existing Markdown boards. See [FORK.md](FORK.md).

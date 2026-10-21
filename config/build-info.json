@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "version": "1.7.4-syllabi.2",
-  "buildId": "20261021.6",
+  "version": "1.7.4-syllabi.3",
+  "buildId": "20261021.9",
   "channel": "development",
-  "builtAt": "2026-10-21T19:51:38.217Z",
-  "sourceFingerprint": "e7dbfe1e4a1d4c35ac6c829e8e008b999c10387f582d69305fbf950981096ca2",
-  "sourceFileCount": 182,
-  "commit": "60feee9f541909964df42f60a5ab47a10b86f15c",
+  "builtAt": "2026-10-21T20:11:47.091Z",
+  "sourceFingerprint": "239b6d602a8bb3abc17f68db550ef3b5ce2d6ece0681442720b0f3c44d1e6df8",
+  "sourceFileCount": 183,
+  "commit": "d91cd15271e21802b9f5f83022dbcbe29c288617",
   "dirty": true
 }

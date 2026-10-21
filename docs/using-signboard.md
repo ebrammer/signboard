@@ -523,7 +523,9 @@ You can also open the shortcut helper from `Help > Keyboard Shortcuts`.
 
 ## Keep the big picture nearby
 
-Open **Overview** for compact summaries of your open projects. Set each project’s goal and next step, expand its row for the original board lists, and reveal completed lists when needed. Search still finds card titles and notes, including completed work.
+Open **Overview** to start on **Now**: requests needing your attention appear above a grid of your open projects. **Projects** shows the project grid; **Needs you** shows the full request queue. The grid adapts from one to three columns and keeps projects in their existing order as agents update them. Each card emphasizes current work, the next step, and the latest recorded update. Goals appear only when supplied.
+
+Select a project for its full summary and original board lists. On wide windows the detail sits beside the grid; on smaller windows it replaces the grid until you choose **Back**. Set the project goal and next step there, and reveal completed lists when needed. Search still finds titles, notes and coordination text, including completed work; open the matching project to inspect its source cards.
 
 **Needs you** brings together explicit questions, decisions and review requests. A blocked card does not automatically need your attention: the agent must describe what it needs from you. Open the request, inspect its evidence, and send a response. Sending a response clears that request; it does not mark the task done. Card coordination controls let you set the same information yourself.
 

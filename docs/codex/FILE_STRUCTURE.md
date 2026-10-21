@@ -213,6 +213,7 @@ Overview lives in `app/board/overviewView.js`, aggregates existing batched snaps
 
 - `lib/projectCoordination.js`: optional project sidecar and safe card coordination operations.
 - `shared/projectCoordination.js`: browser/Node normalization and validation contract.
-- `app/board/overviewView.js`: compact project summaries, expanded original lists, and Needs you views.
+- `app/board/overviewView.js`: snapshot/search/refresh lifecycle and source-card navigation.
+- `app/board/overviewGridView.js`: Now/Projects grid, request preview, and separate selected-project details.
 - `app/board/projectCoordinationView.js`: human request display, project/card coordination forms, replies and stale-draft recovery.
 - Coordination controls/tests accompany the Overview; keep dirty drafts separate from snapshot rerenders.

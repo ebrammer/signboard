@@ -1,8 +1,8 @@
 // Overview preserves source workflows; coordination is explicit and optional.
 function getOverviewState() {
   if (!window.__overviewState) window.__overviewState = {
-    isOpen: false, initialized: false, query: '', projects: [], tab: 'projects',
-    expanded: new Set(), completed: new Set(), requestId: 0, lastRefreshAt: 0,
+    isOpen: false, initialized: false, query: '', projects: [], tab: 'now', selectedProject: '',
+    completed: new Set(), requestId: 0, lastRefreshAt: 0,
     refreshPromise: null, signature: '', editing: null,
   };
   return window.__overviewState;
@@ -136,55 +136,35 @@ function renderOverviewProjects() {
   if (!body) return;
   const projects = filterOverviewProjects(state.projects, state.query);
   const requests = state.projects.flatMap((project) => project.requests);
-  document.getElementById('overviewNeedsYouTab').textContent = `Needs you${requests.length ? ` · ${requests.length}` : ''}`;
-  for (const tab of ['projects', 'needs-you']) document.getElementById(tab === 'projects' ? 'overviewProjectsTab' : 'overviewNeedsYouTab')
-    .setAttribute('aria-selected', String(state.tab === tab));
-  document.getElementById('overviewProjectsTab').tabIndex = state.tab === 'projects' ? 0 : -1;
-  document.getElementById('overviewNeedsYouTab').tabIndex = state.tab === 'needs-you' ? 0 : -1;
+  syncOverviewNavigation(requests.length);
   const total = state.projects.reduce((sum, project) => sum + project.cardCount, 0);
   const visible = projects.reduce((sum, project) => sum + project.visibleCount, 0);
   document.getElementById('overviewCount').textContent = `${state.projects.length} project${state.projects.length === 1 ? '' : 's'} · ${state.query.trim() ? `${visible} of ${total}` : total} cards`;
-  // Keep live forms and their draft/revision untouched during background refresh.
+  // An editor owns its original revision and DOM until it is closed.
   if (state.editing) return;
-  const signature = JSON.stringify([state.query, state.tab, [...state.expanded], [...state.completed], state.projects]);
-  if (signature === state.signature) return; state.signature = signature;
-  const scrollTop = body.scrollTop, focused = body.contains(document.activeElement) ? document.activeElement.dataset.focusKey : '';
+  const signature = JSON.stringify([state.query, state.tab, state.selectedProject, [...state.completed], state.projects, Math.floor(Date.now() / 60000)]);
+  if (signature === state.signature) return;
+  state.signature = signature;
+  const detailBody = document.getElementById('overviewDetailBody');
+  const scrollTop = body.scrollTop, detailScroll = detailBody.scrollTop;
+  const focused = document.getElementById('overviewOverlay').contains(document.activeElement) ? document.activeElement.dataset.focusKey : '';
   const content = document.createDocumentFragment();
   if (!state.projects.length) content.appendChild(createOverviewText('p', 'overview-empty', 'No open projects. Open a board to see its work here.'));
-  else if (!projects.length && state.tab === 'projects') content.appendChild(createOverviewText('p', 'overview-empty', 'No cards match your search.'));
-  if (state.tab === 'needs-you') {
-    const matching = requests.filter((card) => overviewCardMatchesQuery(card, state.query));
-    for (const project of projects.filter((item) => item.error || item.briefError)) content.appendChild(createOverviewText('p', 'overview-source-warning', `${project.boardDisplayName}: Some project files could not be read. Requests may be incomplete.`));
-    if (state.projects.length && !matching.length) content.appendChild(createOverviewText('p', 'overview-empty', state.query.trim() ? 'No requests match your search.' : 'Nothing needs your attention. Agents can ask a question, request a decision, or send work for review.'));
-    for (const card of matching) content.appendChild(renderOverviewRequest(card));
-  } else for (const project of projects) {
-    const section = document.createElement('section'); section.className = 'overview-project'; section.dataset.boardRoot = project.boardRoot;
-    const expanded = Boolean(state.query.trim()) || state.expanded.has(project.boardRoot);
-    const header = document.createElement('div'); header.className = 'overview-project-heading';
-    const toggle = overviewButton('', 'overview-project-title', () => {
-      if (state.expanded.has(project.boardRoot)) state.expanded.delete(project.boardRoot); else state.expanded.add(project.boardRoot); renderOverviewProjects();
-    });
-    const disclosure = document.createElement('span'); disclosure.className = 'overview-disclosure';
-    disclosure.setAttribute('aria-hidden', 'true');
-    disclosure.innerHTML = window.feather.icons[expanded ? 'chevron-down' : 'chevron-right'].toSvg({ width: 16, height: 16 });
-    toggle.append(disclosure, createOverviewText('span', '', project.boardDisplayName));
-    toggle.setAttribute('aria-expanded', String(expanded)); toggle.dataset.overviewExpand = project.boardRoot; toggle.dataset.focusKey = `project:${project.boardRoot}`;
-    header.appendChild(toggle); header.appendChild(createOverviewText('span', 'overview-project-count', `${project.cardCount} cards`));
-    const edit = overviewButton('Edit summary', 'overview-edit-summary', () => openOverviewCoordinationEditor({ project }));
-    edit.dataset.focusKey = `summary:${project.boardRoot}`; edit.setAttribute('aria-label', `Edit ${project.boardDisplayName} summary`); header.appendChild(edit); section.appendChild(header);
-    section.appendChild(createOverviewText('p', 'overview-goal', project.brief.goal || 'No goal set'));
-    const current = project.active.slice(0, 2).map((card) => `${card.title}${!card.hasWorkStatus ? ` (${card.listDisplayName} list)` : ''}`).join(' · ');
-    const activity = document.createElement('div'); activity.className = 'overview-activity';
-    activity.appendChild(createOverviewText('span', '', current ? `Working ${project.active.length} · ${current}${project.active.length > 2 ? ' …' : ''}` : 'No active work reported'));
-    if (project.blocked.length) activity.appendChild(createOverviewText('span', 'overview-signal', `${project.blocked.length} blocked`));
-    if (project.requests.length) { const needs = overviewButton(`${project.requests.length} needs you`, 'overview-signal', () => { state.tab = 'needs-you'; renderOverviewProjects(); }); needs.dataset.focusKey = `needs:${project.boardRoot}`; activity.appendChild(needs); }
-    section.appendChild(activity);
-    section.appendChild(createOverviewText('p', 'overview-next-step', `Next · ${project.brief.nextStep || 'No next step set'}`));
-    if (project.error || project.briefError) { const warning = createOverviewText('p', 'overview-source-warning', `Some project files could not be read. ${project.briefError ? `Project summary: ${project.briefError}` : 'Check folder access. Overview will retry automatically.'}`); warning.setAttribute('role', 'status'); section.appendChild(warning); }
-    if (expanded) renderOverviewLists(project, section); content.appendChild(section);
+  else if (state.tab === 'needs-you') renderOverviewRequestQueue(projects, requests, content);
+  else {
+    if (state.tab === 'now') renderOverviewNeedsPreview(requests, content);
+    const heading = document.createElement('div'); heading.className = 'overview-section-heading';
+    heading.append(createOverviewText('h3', '', 'Projects'), createOverviewText('span', '', `${projects.length} project${projects.length === 1 ? '' : 's'}`));
+    content.appendChild(heading);
+    if (!projects.length) content.appendChild(createOverviewText('p', 'overview-empty', 'No projects or cards match your search.'));
+    const grid = document.createElement('div'); grid.className = 'overview-project-grid';
+    for (const project of projects) grid.appendChild(renderOverviewProjectTile(project));
+    content.appendChild(grid);
   }
   body.replaceChildren(content); body.scrollTop = scrollTop;
-  if (focused) Array.from(body.querySelectorAll('[data-focus-key]')).find((element) => element.dataset.focusKey === focused)?.focus({ preventScroll: true });
+  renderOverviewProjectDetail(projects);
+  detailBody.scrollTop = detailScroll;
+  if (focused) Array.from(document.querySelectorAll('#overviewOverlay [data-focus-key]')).find((element) => element.dataset.focusKey === focused)?.focus({ preventScroll: true });
 }
 async function renderOverviewView() {
   const state = getOverviewState(); if (!state.isOpen) return;
@@ -200,11 +180,9 @@ async function refreshOverviewIfDue() {
   const state = getOverviewState(); if (!state.isOpen || Date.now() - state.lastRefreshAt < 2500) return; await renderOverviewView();
 }
 function syncOverviewBoardTheme() {
-  const overlay = document.getElementById('overviewOverlay'), planner = document.getElementById('plannerOverlay');
-  if (!overlay || !planner) return;
-  for (const property of Object.values(PLANNER_CARD_THEME_PROPERTIES)) {
-    const value = planner.style.getPropertyValue(property); if (value) overlay.style.setProperty(property, value); else overlay.style.removeProperty(property);
-  }
+  // Now has a workspace palette. Source editors continue using their board theme.
+  const overlay = document.getElementById('overviewOverlay');
+  if (overlay) for (const property of Object.values(PLANNER_CARD_THEME_PROPERTIES)) overlay.style.removeProperty(property);
 }
 async function openOverviewView() {
   await closeAllModals({ key: 'Escape' }, { skipRerender: true });
@@ -228,17 +206,31 @@ function initializeOverviewControls() {
   const input = document.getElementById('overviewSearchInput');
   input.addEventListener('input', () => { state.query = input.value; renderOverviewProjects(); });
   input.addEventListener('keydown', (event) => {
-    if (event.key === 'ArrowDown' || event.key === 'Enter') { const first = document.querySelector('#overviewBody button'); if (first) { event.preventDefault(); first.focus(); } }
+    if (event.key === 'ArrowDown' || event.key === 'Enter') { const first = state.selectedProject ? document.querySelector('#overviewDetailBody .overview-card') || document.getElementById('overviewDetailBack') : document.querySelector('#overviewBody button'); if (first) { event.preventDefault(); first.focus(); } }
   });
-  for (const [id, tab] of [['overviewProjectsTab', 'projects'], ['overviewNeedsYouTab', 'needs-you']]) {
+  const tabs = [['overviewNowTab', 'now'], ['overviewProjectsTab', 'projects'], ['overviewNeedsYouTab', 'needs-you']];
+  for (const [id, tab] of tabs) {
     const button = document.getElementById(id);
-    button.addEventListener('click', () => { state.tab = tab; renderOverviewProjects(); });
+    button.addEventListener('click', () => selectOverviewTab(tab));
     button.addEventListener('keydown', (event) => {
-      if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
-        event.preventDefault(); state.tab = event.key === 'Home' ? 'projects' : event.key === 'End' ? 'needs-you' : state.tab === 'projects' ? 'needs-you' : 'projects';
-        renderOverviewProjects(); document.getElementById(state.tab === 'projects' ? 'overviewProjectsTab' : 'overviewNeedsYouTab').focus();
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
+        event.preventDefault();
+        const offset = ['ArrowLeft', 'ArrowUp'].includes(event.key) ? -1 : 1;
+        const index = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (tabs.findIndex((entry) => entry[1] === state.tab) + offset + tabs.length) % tabs.length;
+        selectOverviewTab(tabs[index][1]); document.getElementById(tabs[index][0]).focus();
       }
     });
   }
+  document.getElementById('overviewDetailBack').addEventListener('click', closeOverviewProjectDetail);
+  document.getElementById('overviewOverlay').addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && state.selectedProject && !state.editing && !isModalOpen('modalEditCard')) {
+      event.preventDefault(); event.stopPropagation(); closeOverviewProjectDetail();
+    }
+  });
+  for (const button of document.querySelectorAll('[data-overview-workspace]')) button.addEventListener('click', () => {
+    switchWorkspaceView(button.dataset.overviewWorkspace).catch((error) => {
+      console.error('Failed to switch workspace view.', error); announceSignboardStatus('Could not change workspace view.');
+    });
+  });
   document.getElementById('overviewCloseButton').addEventListener('click', () => closeOverviewView()); state.initialized = true;
 }

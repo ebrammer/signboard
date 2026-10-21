@@ -3,23 +3,23 @@ version: alpha
 name: Signboard Default
 description: Default visual identity for Signboard's local-first board interface.
 colors:
-  primary: "#0B5FFF"
+  primary: "#303030"
   on-primary: "#FFFFFF"
-  secondary: "#5D737E"
-  tertiary: "#15803D"
-  neutral: "#F7F8FA"
+  secondary: "#626262"
+  tertiary: "#626262"
+  neutral: "#F7F7F7"
   surface: "#FFFFFF"
-  on-surface: "#0F172A"
-  muted: "#6B7280"
-  border: "#E6E8EC"
+  on-surface: "#202020"
+  muted: "#626262"
+  border: "#DEDEDE"
   danger: "#D92D20"
-  dark-primary: "#6FCF97"
-  dark-on-primary: "#07130C"
-  dark-neutral: "#091102"
-  dark-surface: "#12200A"
-  dark-on-surface: "#E8F0E5"
-  dark-muted: "#A0B3A3"
-  dark-border: "#1F2E17"
+  dark-primary: "#E0E0E0"
+  dark-on-primary: "#202020"
+  dark-neutral: "#191919"
+  dark-surface: "#242424"
+  dark-on-surface: "#F2F2F2"
+  dark-muted: "#B8B8B8"
+  dark-border: "#424242"
 typography:
   headline-lg:
     fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif"
@@ -182,26 +182,26 @@ components:
 
 Signboard's default theme is a quiet, high-utility workspace for local-first planning. It should feel like a fast desktop tool: calm, crisp, file-native, and direct. The interface favors dense scannable work over decorative presence.
 
-The first impression is a pale canvas with white cards and columns, slate text, restrained borders, and a single clear blue action color. Visual energy comes from interaction states, labels, due indicators, and drag motion, not from large illustrations or broad color fields.
+The first impression is a pale canvas with white cards and columns, charcoal text, restrained gray borders, and high-contrast neutral actions. Visual energy comes from interaction states, labels, due indicators, and drag motion, not from large illustrations or broad color fields.
 
-The default theme is light mode. Dark mode is a companion implementation and should preserve the same hierarchy with green as the primary action color on a deep green-black canvas.
+The default theme is light mode. Dark mode is a companion implementation and should preserve the same hierarchy with light gray actions on a charcoal canvas.
 
 ## Colors
 
-The palette is based on cool neutrals and one action color.
+The palette is based on white, black and neutral grays.
 
-- **Primary (#0B5FFF):** Interaction blue for primary actions, active filters, focus rings, selected tabs, and today emphasis.
-- **On Primary (#FFFFFF):** Text and icons placed directly on primary blue.
-- **Neutral (#F7F8FA):** The default board canvas and app background.
+- **Primary (#303030):** Interaction charcoal for primary actions, active filters, focus rings, selected tabs, and today emphasis.
+- **On Primary (#FFFFFF):** Text and icons placed directly on primary charcoal.
+- **Neutral (#F7F7F7):** The default board canvas and app background.
 - **Surface (#FFFFFF):** Cards, columns, controls, popovers, and modals.
-- **On Surface (#0F172A):** Core text and high-priority UI chrome.
-- **Muted (#6B7280):** Card previews, metadata, helper text, inactive tabs, and secondary icon color.
-- **Border (#E6E8EC):** Low-contrast dividers and object boundaries.
-- **Secondary (#5D737E):** Hover-strength neutral used when cards need a stronger boundary.
-- **Tertiary (#15803D):** Success and completed-task color.
+- **On Surface (#202020):** Core text and high-priority UI chrome.
+- **Muted (#626262):** Card previews, metadata, helper text, inactive tabs, and secondary icon color.
+- **Border (#DEDEDE):** Low-contrast dividers and object boundaries.
+- **Secondary (#626262):** Hover-strength neutral used when cards need a stronger boundary.
+- **Tertiary (#626262):** Success and completed-task color.
 - **Danger (#D92D20):** Today/overdue and destructive color. Use sparingly.
 
-Dark mode mirrors the hierarchy with `#091102` as the canvas, `#12200A` as the surface, `#E8F0E5` as text, `#A0B3A3` as muted text, and `#6FCF97` as the primary action color.
+Dark mode mirrors the hierarchy with `#191919` as the canvas, `#242424` as the surface, `#F2F2F2` as text, `#B8B8B8` as muted text, and `#E0E0E0` as the primary action color.
 
 ## Typography
 
@@ -249,7 +249,7 @@ Do not mix sharp rectangular controls into the default theme unless matching nat
 
 ## Components
 
-Buttons are quiet by default: white surface, slate text, one-pixel border, and 10px radius. Primary buttons use blue fill, white text, pill radius, and at least 40px height.
+Buttons are quiet by default: white surface, slate text, one-pixel border, and 10px radius. Primary buttons use charcoal fill, white text, pill radius, and at least 40px height.
 
 Cards are white surfaces with 10px radius, 10px padding, subtle border, and a low shadow. Card titles are regular 16px text; preview and metadata text is muted. Title and preview text wraps inside the card, including unbroken strings such as URLs, so a card never spills over the column beside it. Label chips are pill-shaped, small, and use board label colors without overwhelming card text.
 
@@ -270,7 +270,7 @@ Motion should respect `prefers-reduced-motion`: drag tilt, hover lift, animated 
 ## Do's and Don'ts
 
 - Do keep the board dense, scannable, and calm.
-- Do use primary blue for active, focused, selected, or highest-priority actions only.
+- Do use the neutral primary accent for active, focused, selected, or highest-priority actions only.
 - Do keep keyboard focus visible without adding persistent editor chrome for pointer users.
 - Do use borders and muted text to create hierarchy before adding stronger shadows.
 - Do keep card titles modest and regular weight so many cards can sit together comfortably.
@@ -280,3 +280,11 @@ Motion should respect `prefers-reduced-motion`: drag tilt, hover lift, animated 
 - Don't use multiple competing accent colors for core actions.
 - Don't hide essential file-first context such as list names, labels, due dates, or source list labels in temporal views.
 - Don't use negative letter spacing or viewport-scaled type.
+
+## Syllabi Now workspace
+
+The fork’s default visual system is monochrome: white and light gray in light mode, charcoal and dark gray in dark mode. Overview, coordination forms, default source editors and tooltips share these neutral colors. Avoid decorative green, blue or terracotta accents. Preserve deliberate user-selected board schemes and label colors; danger remains a meaningful red signal. Default progress and tomorrow indicators use neutral text.
+
+Use a compact navigation rail, a bounded explicit-request preview, and a stable row-major grid: two project cards at ordinary desktop widths, three on wide windows and one on narrow windows. Emphasize current work, then the next action and factual freshness. Goals are optional; do not repeat empty goal fields or infer project health from timestamps. Request and blocker signals remain distinct.
+
+Project details open separately, beside the grid only when there is enough width, otherwise as a full detail view with Back. Preserve source workflow lists and completed disclosures there. Agent refreshes must not reorder tiles or interrupt keyboard focus and editing drafts. Do not add inactive navigation items or illustrative project facts to the live product.

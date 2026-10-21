@@ -2665,23 +2665,35 @@ function createWindow() {
             document.querySelector('#workspaceViewOverview svg'), 'Renderer initialization / persisted fixture restore');
           const restoredBoardRoot = normalizeRoot(window.boardRoot);
           document.getElementById('workspaceViewOverview').click();
-          await waitFor(() => document.querySelectorAll('#overviewBody [data-overview-expand]').length === expected.boards.length,
-            'Compact Overview project rows');
-          for (const toggle of document.querySelectorAll('#overviewBody [data-overview-expand]')) toggle.click();
-          for (const toggle of document.querySelectorAll('#overviewBody .overview-completed-toggle')) toggle.click();
+          await waitFor(() => document.querySelectorAll('#overviewBody .overview-project').length === expected.boards.length,
+            'Now project grid');
+          const overviewProjects = document.querySelectorAll('#overviewBody .overview-project').length;
+          const overviewCardTitles = [];
+          for (const expectedBoard of expected.boards) {
+            const projectButton = Array.from(document.querySelectorAll('#overviewBody [data-overview-project]'))
+              .find(node => normalizeRoot(node.dataset.overviewProject) === expectedBoard.root);
+            if (!projectButton) throw new Error(`Missing project tile: ${expectedBoard.name}`);
+            projectButton.click();
+            await waitFor(() => {
+              const detail = document.getElementById('overviewProjectDetail');
+              return detail && !detail.classList.contains('hidden') &&
+                Array.from(document.querySelectorAll('#overviewDetailBody .overview-card-title'))
+                  .some(node => node.textContent.trim() === expectedBoard.title);
+            }, `Project detail: ${expectedBoard.name}`);
+            overviewCardTitles.push(...Array.from(document.querySelectorAll('#overviewDetailBody .overview-card-title'))
+              .map(node => node.textContent.trim()));
+            document.getElementById('overviewDetailBack').click();
+            await waitFor(() => document.getElementById('overviewProjectDetail').classList.contains('hidden'), 'Return to project grid');
+          }
           await waitFor(() => {
             const overlay = document.getElementById('overviewOverlay');
-            const titles = Array.from(document.querySelectorAll('#overviewBody .overview-card-title')).map(node => node.textContent.trim());
             return overlay && !overlay.classList.contains('hidden') && overlay.getAttribute('aria-hidden') === 'false' &&
               document.getElementById('workspaceViewOverview').getAttribute('aria-pressed') === 'true' &&
-              expected.boards.every(board => titles.includes(board.title)) && titles.length === expected.boards.length;
-          }, 'Functional Overview fixture render');
+              expected.boards.every(board => overviewCardTitles.includes(board.title)) && overviewCardTitles.length === expected.boards.length;
+          }, 'Functional Now grid and source details');
           return {
             rendererLoaded: true, rendererInitialized: true, fixtureBoardVisible: true, overviewLoaded: true,
-            restoredBoardRoot,
-            overviewCardTitles: Array.from(document.querySelectorAll('#overviewBody .overview-card-title')).map(node => node.textContent.trim()),
-            overviewProjects: document.querySelectorAll('#overviewBody .overview-project').length,
-            overviewCards: document.querySelectorAll('#overviewBody .overview-card').length,
+            restoredBoardRoot, overviewCardTitles, overviewProjects, overviewCards: overviewCardTitles.length,
           };
         }.toString()})(${JSON.stringify(fixture)})`);
         const markerPath = path.join(app.getPath('userData'), PACKAGED_SMOKE_TEST_FILE);

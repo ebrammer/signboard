@@ -27,4 +27,4 @@ People and coding agents changing the app should use the [contributor documentat
 
 Public contributor docs describe reusable development practices. Machine access instructions, local research, QA reports, and handoff notes stay in ignored local directories.
 
-The Syllabi fork adds a compact project Overview and a **Needs you** queue for human questions, decisions and review. See [Using Signboard](using-signboard.md) for the interaction and [MCP reference](../MCP_README.md) for agent coordination.
+The Syllabi fork adds a responsive Now project grid and a **Needs you** queue for human questions, decisions and review. See [Using Signboard](using-signboard.md) for the interaction and [MCP reference](../MCP_README.md) for agent coordination.

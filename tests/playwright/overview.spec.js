@@ -21,6 +21,8 @@ async function withOverviewApp(run) {
     const customList = path.join(boardB, '001-Waiting on reviewer-stock');
     await fs.rename(path.join(boardB, '001-Doing-stock'), customList);
     const cardPath = path.join(customList, '000-polish-copy-stock.md');
+    const source = await cardFrontmatter.readCard(cardPath);
+    await cardFrontmatter.writeCard(cardPath, { ...source, body: `${source.body}\n${'Additional source context. '.repeat(200)}\nUnique full notes needle.` });
     await fs.mkdir(path.join(root, 'profile'));
     await fs.writeFile(path.join(root, 'profile', 'trusted-board-roots.json'), JSON.stringify([boardA, boardB]));
     const virtualDisplay = process.platform === 'linux' && process.env.SIGNBOARD_PLAYWRIGHT_VIRTUAL_DESKTOP === '1';
@@ -52,17 +54,26 @@ test('Overview preserves custom workflows, searches all projects, edits source c
     await expect(page.locator('#overviewOverlay')).toBeVisible();
     await expect(page.locator('.overview-project')).toHaveCount(2);
     await expect(page.locator('.overview-card')).toHaveCount(0);
-    for (const toggle of await page.locator('[data-overview-expand]').all()) await toggle.click();
-    for (const toggle of await page.locator('.overview-completed-toggle').all()) await toggle.click();
-    await expect(page.locator('.overview-card')).toHaveCount(6);
+    // Each project keeps its complete source workflow in its own detail view.
+    for (const board of [boardA, boardB]) {
+      await page.locator('[data-overview-project]').filter({ hasText: board === boardA ? 'Alpha Project' : 'Beta Project' }).click();
+      await expect(page.locator('#overviewProjectDetail')).toBeVisible();
+      await page.locator('.overview-completed-toggle').click();
+      await expect(page.locator('#overviewDetailBody .overview-card')).toHaveCount(3);
+      await page.locator('#overviewDetailBack').click();
+    }
+    await page.locator('[data-overview-project]').filter({ hasText: 'Beta Project' }).click();
     await expect(page.locator('.overview-list-title', { hasText: 'Waiting on reviewer' })).toHaveText('Waiting on reviewer · 1');
     await expect(page.locator('#overviewCount')).toHaveText('2 projects · 6 cards');
     await page.screenshot({ path: testInfo.outputPath('overview-populated.png') });
+    await page.locator('#overviewSearchInput').fill('Beta reviewer full notes needle');
+    await expect(page.locator('#overviewDetailBody .overview-card')).toHaveCount(1);
+    await expect(page.locator('#overviewDetailBody .overview-card')).toContainText('Polish homepage copy');
     await page.locator('#overviewSearchInput').fill('Beta reviewer Tighten');
     await expect(page.locator('.overview-card')).toHaveCount(1);
     await expect(page.locator('.overview-card')).toContainText('Polish homepage copy');
     const overviewBackground = await page.locator('#overviewOverlay').evaluate((element) => getComputedStyle(element).backgroundColor);
-    await page.locator('.overview-card').click();
+    await page.locator('.overview-card-title').click();
     await expect(page.locator('#modalEditCard')).toBeVisible();
     expect(await page.evaluate(() => localStorage.getItem('activeBoardPath'))).toBe(normalizeRoot(boardA));
     expect(await page.evaluate(() => window.boardRoot)).toBe(normalizeRoot(boardB));
@@ -79,8 +90,8 @@ test('Overview preserves custom workflows, searches all projects, edits source c
     await cardFrontmatter.writeCard(cardPath, { ...card, frontmatter: { ...card.frontmatter, title: 'External agent update' } });
     await expect(page.locator('.overview-card')).toContainText('External agent update', { timeout: 15000 });
     await page.locator('#overviewSearchInput').fill('no-such-card');
-    await expect(page.locator('#overviewBody')).toContainText('No cards match your search.');
-    await page.locator('#workspaceViewTable').click();
+    await expect(page.locator('#overviewBody')).toContainText('No projects or cards match your search.');
+    await page.locator('[data-overview-workspace=table]').click();
     await expect(page.locator('#overviewOverlay')).toBeHidden();
     await expect(page.locator('#workspaceViewTable')).toHaveAttribute('aria-pressed', 'true');
     await page.locator('#workspaceViewPlanner').click();
@@ -90,7 +101,9 @@ test('Overview preserves custom workflows, searches all projects, edits source c
     await expect(page.locator('#overviewOverlay')).toBeVisible();
     await expect(page.locator('#overviewSearchInput')).toHaveValue('no-such-card');
     await page.locator('#overviewSearchInput').fill('');
-    await expect(page.locator('.overview-card')).toHaveCount(6);
+    await expect(page.locator('#overviewDetailBody .overview-card')).toHaveCount(3);
+    await page.locator('#overviewDetailBack').click();
+    await expect(page.locator('.overview-project')).toHaveCount(2);
   });
 });
 
@@ -118,5 +131,75 @@ test('Overview shows missing project and no-open-board states', async ({}, testI
     await expect(page.locator('#workspaceViewKanban')).toBeHidden();
     await page.locator('#workspaceViewOverview').click();
     await expect(page.locator('#overviewBody')).toContainText('No open projects.');
+  });
+});
+
+test('Now exposes malformed project briefs and keeps readable source cards available', async ({}, testInfo) => {
+  await withOverviewApp(async ({ page, boardB }) => {
+    const malformedPath = path.join(boardB, '000-To-do-stock', '001-malformed-stock.md');
+    const malformedBytes = '---\ntitle: [unterminated\n---\nReadable legacy fallback fixture.';
+    await fs.writeFile(malformedPath, malformedBytes);
+    await fs.writeFile(path.join(boardB, '.signboard-project.md'), '---\nsignboard_project: 1\ngoal: [unterminated\n---\n');
+    await page.locator('#workspaceViewOverview').click();
+    await expect(page.locator('.overview-project')).toHaveCount(2);
+    await expect(page.locator('.overview-source-warning')).toContainText('Some project files could not be read');
+    await page.locator('[data-overview-project]').filter({ hasText: 'Beta Project' }).click();
+    await expect(page.locator('#overviewDetailBody .overview-card')).toHaveCount(3);
+    await expect(page.locator('#overviewDetailBody')).toContainText('malformed YAML');
+    await expect(page.locator('#overviewDetailBody')).toContainText('Readable legacy fallback fixture.');
+    await expect(page.locator('#overviewDetailBody')).toContainText('Plan release notes');
+    await expect(page.locator('#overviewDetailBody')).toContainText('Polish homepage copy');
+    await page.locator('#overviewSearchInput').fill('unique full notes needle');
+    await expect(page.locator('#overviewDetailBody .overview-card')).toHaveCount(1);
+    await expect(page.locator('.overview-source-warning').first()).toBeVisible();
+    expect(await fs.readFile(malformedPath, 'utf8')).toBe(malformedBytes);
+    await page.screenshot({ path: testInfo.outputPath('now-partial-source-warning.png') });
+  });
+});
+
+test('a foreign project source conflict preserves the exact draft, disk bytes and selected detail', async ({}, testInfo) => {
+  await withOverviewApp(async ({ page, boardA, boardB, cardPath }) => {
+    await page.locator('#workspaceViewOverview').click();
+    await page.locator('[data-overview-project]').filter({ hasText: 'Beta Project' }).click();
+    await page.locator('#overviewSearchInput').fill('Beta reviewer Tighten');
+    await page.locator('#overviewDetailBody .overview-card-title').click();
+    await expect(page.locator('#modalEditCard')).toBeVisible();
+    const draft = 'My exact unsaved draft\n\n- Keep this final line.\n';
+    await page.evaluate((text) => {
+      isApplyingExternalEditorRefresh = true;
+      activeCardEditorInstance.setValue(text);
+      isApplyingExternalEditorRefresh = false;
+    }, draft);
+    const source = await cardFrontmatter.readCard(cardPath);
+    await cardFrontmatter.writeCard(cardPath, { frontmatter: { ...source.frontmatter, external_custom: 'retain-me' }, body: 'External saved source context' });
+    const savedBytes = await fs.readFile(cardPath);
+    await page.evaluate(async () => { await enqueueEditorSave(getEditorBodyValue()); });
+    await expect(page.locator('#cardEditorSaveConflict')).toBeVisible();
+    await expect(page.locator('#cardEditorOverType .overtype-input')).toHaveValue(draft);
+    expect(await fs.readFile(cardPath)).toEqual(savedBytes);
+    expect(await page.evaluate(async () => {
+      try { await switchWorkspaceView('table'); return false; } catch { return true; }
+    })).toBe(true);
+    await expect(page.locator('#overviewOverlay')).toBeVisible();
+    await expect(page.locator('#modalEditCard')).toBeVisible();
+    expect(await page.evaluate(() => window.boardRoot)).toBe(normalizeRoot(boardB));
+    expect(await page.evaluate(() => getStoredActiveBoard())).toBe(normalizeRoot(boardA));
+    await page.getByRole('button', { name: 'Review saved version', exact: true }).click();
+    await expect(page.locator('#cardEditorSaveConflict textarea')).toHaveValue(/External saved source context/);
+    await page.screenshot({ path: testInfo.outputPath('now-foreign-source-conflict.png') });
+    const merged = `External saved source context\n\n${draft}`;
+    await page.locator('#cardEditorOverType .overtype-input').fill(merged);
+    await page.getByRole('button', { name: 'Save merged draft', exact: true }).click();
+    await expect(page.locator('#cardEditorSaveConflict')).toHaveCount(0);
+    const saved = await cardFrontmatter.readCard(cardPath);
+    expect(saved.body).toBe(merged);
+    expect(saved.frontmatter.external_custom).toBe('retain-me');
+    await page.locator('#cardEditorClose').click();
+    await expect(page.locator('#modalEditCard')).toBeHidden();
+    expect(await page.evaluate(() => window.boardRoot)).toBe(normalizeRoot(boardA));
+    await expect(page.locator('#overviewProjectDetail')).toContainText('Beta Project');
+    await expect(page.locator('#overviewSearchInput')).toHaveValue('Beta reviewer Tighten');
+    await page.locator('#overviewSearchInput').fill('');
+    await expect(page.locator('#overviewDetailBody .overview-card')).toHaveCount(2);
   });
 });

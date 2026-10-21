@@ -131,6 +131,8 @@ Overview lives in `app/board/overviewView.js`, aggregates existing batched snaps
 
 ## Human-first project coordination
 
-The compact Overview and Needs you interface is owned by `app/board/overviewView.js` and its coordination view helper. Shared normalization lives in `shared/projectCoordination.js`; persisted summaries and revision-protected card coordination live in `lib/projectCoordination.js`. The optional `.signboard-project.md` board sidecar must not be created during reads. Preserve unknown frontmatter and Markdown bodies.
+The Now project grid and Needs you interface is owned by `app/board/overviewView.js` and its coordination view helper. Shared normalization lives in `shared/projectCoordination.js`; persisted summaries and revision-protected card coordination live in `lib/projectCoordination.js`. The optional `.signboard-project.md` board sidecar must not be created during reads. Preserve unknown frontmatter and Markdown bodies.
 
 Only explicit decision/question/review metadata belongs in Needs you; respect completed-list workflow settings and exclude archived work. Human replies clear attention, not completion or list placement. Agents must not overwrite human responses, invent evidence, or equate blocked work with a human request. Preserve dirty inline drafts and focus during background refresh. Keep MCP schemas, docs, tests, and desktop IPC aligned.
+
+The Syllabi default theme and Now workspace use white/gray/black neutral palettes in both modes. Keep CSS root defaults, `DEFAULT_BOARD_THEME_PALETTES`, the `default` scheme and DESIGN.md aligned; do not reintroduce decorative green/blue accents. Preserve explicit custom board schemes and user label colors.
